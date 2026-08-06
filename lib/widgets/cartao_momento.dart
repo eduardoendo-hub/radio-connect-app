@@ -1,15 +1,19 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import '../api.dart';
 import '../tema.dart';
 
-/// O Momento na tela do ouvinte.
+/// 03 · O Momento no No Ar.
 ///
-/// Regra do MVP: **toda interação se resolve com um único toque**. A pessoa pode estar
-/// dirigindo, cozinhando ou com o celular numa mão só — não pode precisar ler muito,
-/// preencher campo nem navegar por telas.
+/// A interação assume a área principal. Gradiente laranja, sombra quente, e a
+/// hierarquia do capítulo: **contexto → pergunta → opções → tempo**.
 ///
-/// E é um convite, nunca uma obrigação: dá para ignorar e continuar ouvindo.
+/// Regras que não se negociam:
+///   · **Um Momento por vez**
+///   · Resposta em **um único toque**
+///   · Nunca bloqueia o player nem exige resposta — é convite, não obrigação
+///   · Todo toque tem retorno imediato; nunca deixar o dedo sem resposta
 class CartaoMomento extends StatefulWidget {
   final Map<String, dynamic> momento;
   final VoidCallback aoResponder;
@@ -20,6 +24,7 @@ class CartaoMomento extends StatefulWidget {
 }
 
 class _CartaoMomentoState extends State<CartaoMomento> {
+  String? _escolhida;
   bool _enviando = false;
   Map<String, dynamic>? _resultado;
   String? _mensagem;
@@ -30,24 +35,19 @@ class _CartaoMomentoState extends State<CartaoMomento> {
   @override
   void initState() {
     super.initState();
-    _atualizarRelogio();
-    _relogio = Timer.periodic(const Duration(seconds: 1), (_) => _atualizarRelogio());
+    _tick();
+    _relogio = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
 
   @override
   void didUpdateWidget(CartaoMomento anterior) {
     super.didUpdateWidget(anterior);
-    // Momento novo: limpa o resultado do anterior.
     if (anterior.momento['id'] != widget.momento['id']) {
-      setState(() {
-        _resultado = null;
-        _mensagem = null;
-        _erro = null;
-      });
+      setState(() { _resultado = null; _mensagem = null; _erro = null; _escolhida = null; });
     }
   }
 
-  void _atualizarRelogio() {
+  void _tick() {
     final fim = DateTime.tryParse(widget.momento['terminaEm']?.toString() ?? '');
     if (fim == null) return;
     final d = fim.difference(DateTime.now());
@@ -62,15 +62,13 @@ class _CartaoMomentoState extends State<CartaoMomento> {
 
   Future<void> _responder(String? opcaoId) async {
     if (_enviando || _resultado != null) return;
-    setState(() {
-      _enviando = true;
-      _erro = null;
-    });
+    // Retorno imediato: a opção acende antes mesmo da resposta do servidor.
+    setState(() { _escolhida = opcaoId; _enviando = true; _erro = null; });
     try {
       final r = await Api.enviar('/momentos/${widget.momento['id']}/responder', {
         if (opcaoId != null) 'opcaoId': opcaoId,
-        // Em rede ruim o app reenvia sem saber se a primeira tentativa chegou.
-        // A chave garante que reenviar não vira voto duplicado.
+        // Em rede ruim o app reenvia sem saber se a primeira chegou. A chave garante
+        // que reenviar não vira voto duplicado.
         'chaveIdempotencia': '${widget.momento['id']}-${DateTime.now().millisecondsSinceEpoch}',
       });
       setState(() {
@@ -79,7 +77,7 @@ class _CartaoMomentoState extends State<CartaoMomento> {
       });
       widget.aoResponder();
     } on ErroApi catch (e) {
-      setState(() => _erro = e.mensagem);
+      setState(() { _erro = e.mensagem; _escolhida = null; });
     } finally {
       if (mounted) setState(() => _enviando = false);
     }
@@ -87,118 +85,139 @@ class _CartaoMomentoState extends State<CartaoMomento> {
 
   @override
   Widget build(BuildContext context) {
+    if (_resultado != null) return _Resultado(resultado: _resultado!, mensagem: _mensagem);
+
     final m = widget.momento;
     final opcoes = (m['opcoes'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
-    final patrocinado = m['patrocinada'] == true;
+    final contexto = m['contexto']?.toString();
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(Espaco.md),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Tema.superficie,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Tema.laranja.withValues(alpha: .45)),
+        gradient: BandFMColors.momentGradient,
+        borderRadius: BorderRadius.circular(BandFMRadii.hero),
+        boxShadow: [
+          BoxShadow(
+            color: BandFMColors.orange.withValues(alpha: .5),
+            blurRadius: 44,
+            offset: const Offset(0, 18),
+            spreadRadius: -14,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              // Contexto: quem está perguntando e por quê.
-              Expanded(
-                child: Text(
-                  patrocinado ? 'MOMENTO PATROCINADO' : 'AGORA',
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    letterSpacing: 1.4,
-                    fontWeight: FontWeight.w600,
-                    color: patrocinado ? Tema.texto2 : Tema.laranja,
-                  ),
+          // Contexto: quem está perguntando. Sem isso o Momento vira formulário.
+          Row(children: [
+            Container(
+              width: 30, height: 30,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: .28),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Symbols.mic, size: 16, color: Colors.white),
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                contexto ?? 'A rádio quer saber',
+                style: const TextStyle(
+                  fontSize: 12.5, fontWeight: FontWeight.w700,
+                  color: Color(0xE6FFFFFF), letterSpacing: -.1,
                 ),
               ),
-              if (_restante.inSeconds > 0 && _resultado == null)
-                Text(
-                  '${_restante.inMinutes.toString().padLeft(2, '0')}:'
-                  '${(_restante.inSeconds % 60).toString().padLeft(2, '0')}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Tema.texto2,
-                    fontFeatures: [FontFeature.tabularFigures()],
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: Espaco.sm),
+            ),
+          ]),
+          const SizedBox(height: 14),
 
-          // A pergunta: o conteúdo principal.
           Text(
             m['titulo']?.toString() ?? '',
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, height: 1.25),
+            style: const TextStyle(
+              fontSize: 25, fontWeight: FontWeight.w800, height: 1.15,
+              letterSpacing: -.5, color: Colors.white,
+            ),
           ),
           if (m['texto'] != null) ...[
-            const SizedBox(height: 6),
-            Text(m['texto'].toString(), style: const TextStyle(color: Tema.texto2, fontSize: 14)),
+            const SizedBox(height: 8),
+            Text(m['texto'].toString(),
+                style: const TextStyle(fontSize: 14, color: Color(0xCCFFFFFF), height: 1.4)),
           ],
 
-          const SizedBox(height: Espaco.md),
-
-          if (_resultado != null)
-            _Resultado(resultado: _resultado!, mensagem: _mensagem)
-          else if (opcoes.isEmpty)
-            // Aviso: nem todo Momento pede interação.
-            const SizedBox.shrink()
-          else
-            ...opcoes.map((o) => Padding(
-                  padding: const EdgeInsets.only(bottom: Espaco.sm),
-                  child: _Opcao(
-                    rotulo: o['rotulo']?.toString() ?? '',
-                    emoji: o['emoji']?.toString(),
-                    habilitado: !_enviando,
-                    aoTocar: () => _responder(o['id']?.toString()),
-                  ),
-                )),
+          if (opcoes.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            // Lado a lado quando são duas: a escolha cabe num olhar e num toque.
+            if (opcoes.length == 2)
+              Row(children: [
+                Expanded(child: _opcao(opcoes[0])),
+                const SizedBox(width: 10),
+                Expanded(child: _opcao(opcoes[1])),
+              ])
+            else
+              Column(
+                children: opcoes
+                    .map((o) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _opcao(o),
+                        ))
+                    .toList(),
+              ),
+          ],
 
           if (_erro != null) ...[
-            const SizedBox(height: Espaco.sm),
-            Text(_erro!, style: const TextStyle(color: Color(0xFFFF9A95), fontSize: 13)),
+            const SizedBox(height: 12),
+            Text(_erro!, style: const TextStyle(fontSize: 13, color: Colors.white)),
           ],
+
+          const SizedBox(height: 16),
+          Row(children: [
+            const Icon(Symbols.timer, size: 15, color: Color(0xB3FFFFFF)),
+            const SizedBox(width: 6),
+            Text(
+              _restante.inSeconds > 0
+                  ? 'Restam ${_restante.inMinutes}min ${(_restante.inSeconds % 60).toString().padLeft(2, '0')}s'
+                  : 'Encerrando…',
+              style: const TextStyle(fontSize: 12.5, color: Color(0xB3FFFFFF), fontWeight: FontWeight.w600),
+            ),
+          ]),
         ],
       ),
     );
   }
-}
 
-class _Opcao extends StatelessWidget {
-  final String rotulo;
-  final String? emoji;
-  final bool habilitado;
-  final VoidCallback aoTocar;
-  const _Opcao({required this.rotulo, this.emoji, required this.habilitado, required this.aoTocar});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _opcao(Map<String, dynamic> o) {
+    final id = o['id']?.toString();
+    final aceso = _escolhida == id;
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: habilitado ? aoTocar : null,
-        borderRadius: BorderRadius.circular(12),
+        onTap: _enviando ? null : () => _responder(id),
+        borderRadius: BorderRadius.circular(BandFMRadii.lg),
         child: Container(
-          width: double.infinity,
-          // Alvo de toque generoso: a pessoa pode estar dirigindo.
-          padding: const EdgeInsets.symmetric(horizontal: Espaco.md, vertical: 15),
+          constraints: const BoxConstraints(minHeight: BandFMSpacing.minTouchTarget),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
-            color: Tema.superficieAlta,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Tema.borda),
+            color: aceso ? Colors.white.withValues(alpha: .22) : Colors.black.withValues(alpha: .22),
+            borderRadius: BorderRadius.circular(BandFMRadii.lg),
+            border: Border.all(
+              color: aceso ? Colors.white : Colors.transparent,
+              width: 1.5,
+            ),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              if (emoji != null && emoji!.isNotEmpty) ...[
-                Text(emoji!, style: const TextStyle(fontSize: 18)),
-                const SizedBox(width: Espaco.sm),
+              if (o['emoji'] != null && o['emoji'].toString().isNotEmpty) ...[
+                Text(o['emoji'].toString(), style: const TextStyle(fontSize: 19)),
+                const SizedBox(height: 6),
               ],
-              Expanded(
-                child: Text(rotulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+              Text(
+                o['rotulo']?.toString() ?? '',
+                style: const TextStyle(
+                  fontSize: 14.5, fontWeight: FontWeight.w700, color: Colors.white, height: 1.25,
+                ),
               ),
             ],
           ),
@@ -208,11 +227,10 @@ class _Opcao extends StatelessWidget {
   }
 }
 
-/// O fechamento.
+/// 04 · O resultado.
 ///
-/// Quando a rádio pede participação e não mostra o que aconteceu, a interação parece
-/// vazia. Mostrar o resultado coletivo é o que cria reciprocidade — e o que faz o
-/// ouvinte perceber que outras pessoas viveram aquilo junto com ele.
+/// Sem fechamento a participação parece vazia. Confirmação + resultado coletivo:
+/// o ouvinte vê que outras pessoas viveram aquilo junto com ele.
 class _Resultado extends StatelessWidget {
   final Map<String, dynamic> resultado;
   final String? mensagem;
@@ -222,62 +240,97 @@ class _Resultado extends StatelessWidget {
   Widget build(BuildContext context) {
     final opcoes = (resultado['opcoes'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
     final total = (resultado['total'] as num?)?.toInt() ?? 0;
+    final ordenadas = [...opcoes]..sort((a, b) => (b['votos'] as num).compareTo(a['votos'] as num));
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (mensagem != null) ...[
-          Row(
-            children: [
-              const Icon(Icons.check_circle, size: 16, color: Tema.laranja),
-              const SizedBox(width: 6),
-              Text(mensagem!, style: const TextStyle(color: Tema.laranja, fontSize: 13.5)),
-            ],
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(BandFMSpacing.x4),
+          decoration: BoxDecoration(
+            color: BandFMColors.surface,
+            borderRadius: BorderRadius.circular(BandFMRadii.card),
+            border: Border.all(color: BandFMColors.green.withValues(alpha: .45)),
           ),
-          const SizedBox(height: Espaco.md),
-        ],
-        ...opcoes.map((o) {
-          final pct = (o['percentual'] as num?)?.toInt() ?? 0;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: Espaco.sm),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Stack(
-                children: [
-                  Container(height: 48, color: Tema.superficieAlta),
-                  AnimatedFractionallySizedBox(
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.easeOutCubic,
-                    widthFactor: pct / 100,
-                    child: Container(height: 48, color: Tema.laranja.withValues(alpha: .28)),
-                  ),
-                  SizedBox(
-                    height: 48,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: Espaco.md),
-                      child: Row(
-                        children: [
-                          if (o['emoji'] != null) ...[
-                            Text(o['emoji'].toString()),
-                            const SizedBox(width: Espaco.sm),
-                          ],
-                          Expanded(child: Text(o['rotulo']?.toString() ?? '')),
-                          Text('$pct%',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontFeatures: [FontFeature.tabularFigures()],
-                              )),
-                        ],
+          child: Row(children: [
+            const Icon(Symbols.check_circle, fill: 1, color: BandFMColors.green, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(mensagem ?? 'Seu voto foi registrado',
+                    style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 3),
+                const Text('Sua conexão com a Band FM ficou mais forte',
+                    style: TextStyle(fontSize: 12.5, color: BandFMColors.textTertiary)),
+              ]),
+            ),
+          ]),
+        ),
+        const SizedBox(height: BandFMSpacing.x3),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(BandFMSpacing.x4),
+          decoration: BoxDecoration(
+            color: BandFMColors.surface,
+            borderRadius: BorderRadius.circular(BandFMRadii.card),
+            border: Border.all(color: BandFMColors.line),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            ...ordenadas.asMap().entries.map((e) {
+              final o = e.value;
+              final pct = (o['percentual'] as num?)?.toInt() ?? 0;
+              final vencedora = e.key == 0 && total > 0;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Expanded(
+                      child: Text(
+                        '${o['emoji'] ?? ''} ${o['rotulo']}'.trim(),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: vencedora ? FontWeight.w700 : FontWeight.w500,
+                          color: vencedora ? BandFMColors.textPrimary : BandFMColors.textSecondary,
+                        ),
                       ),
                     ),
+                    Text('$pct%',
+                        style: TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w800,
+                          color: vencedora ? BandFMColors.orange : BandFMColors.textTertiary,
+                        )),
+                  ]),
+                  const SizedBox(height: 7),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0, end: pct / 100),
+                      duration: const Duration(milliseconds: 700),
+                      curve: Curves.easeOutCubic,
+                      builder: (_, v, __) => Stack(children: [
+                        Container(height: 10, color: BandFMColors.surfaceRaised),
+                        FractionallySizedBox(
+                          widthFactor: v,
+                          child: Container(
+                            height: 10,
+                            decoration: BoxDecoration(
+                              gradient: vencedora
+                                  ? const LinearGradient(colors: [Color(0xFFF6821F), Color(0xFFFFB05C)])
+                                  : null,
+                              color: vencedora ? null : BandFMColors.surfaceRaised,
+                            ),
+                          ),
+                        ),
+                      ]),
+                    ),
                   ),
-                ],
-              ),
-            ),
-          );
-        }),
-        Text('$total ${total == 1 ? 'participação' : 'participações'}',
-            style: const TextStyle(color: Tema.texto3, fontSize: 12.5)),
+                ]),
+              );
+            }),
+            Text('$total ${total == 1 ? 'pessoa participou' : 'pessoas participaram'}',
+                style: const TextStyle(fontSize: 12.5, color: BandFMColors.textTertiary)),
+          ]),
+        ),
       ],
     );
   }

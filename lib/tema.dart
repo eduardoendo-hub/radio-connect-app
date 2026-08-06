@@ -1,50 +1,79 @@
+// Band FM — app do ouvinte (Radio Connect, white-label).
+// Stack definida em uploads/03-arquitetura: Flutter.
+// Estes valores são tenant-scoped: em outra emissora, só as cores de marca mudam.
 import 'package:flutter/material.dart';
 
-/// A identidade da emissora.
-///
-/// O app é **white-label total**: o ouvinte vê Band FM, nunca Radio Connect. Estas cores
-/// são o padrão de fábrica da Band FM, amostradas dos pixels do deck da proposta.
-///
-/// Em produção elas vêm do servidor, na camada `tema` da configuração do tenant — é isso
-/// que permite trocar a cara de uma rádio sem passar pela loja. Aqui ficam como valor
-/// inicial, usado enquanto o app ainda não recebeu a configuração.
-class Tema {
-  static const laranja = Color(0xFFF6821F); // primária Band FM
-  static const laranjaForte = Color(0xFFD96D13);
+class BandFMColors {
+  static const bg = Color(0xFF0A0A0A);
+  static const surface = Color(0xFF181818);
+  static const surfaceRaised = Color(0xFF242424);
+  static const miniPlayer = Color(0xFF2A1A0C);
+  static const line = Color(0x12FFFFFF);
 
-  /// Fundo neutro, sem o viés esverdeado do Studio. É de propósito: aqui a cor da
-  /// rádio precisa dominar.
-  static const fundo = Color(0xFF0B0B0C);
-  static const superficie = Color(0xFF151517);
-  static const superficieAlta = Color(0xFF1E1E21);
-  static const borda = Color(0xFF2A2A2E);
+  static const textPrimary = Color(0xFFFFFFFF);
+  static const textSecondary = Color(0xFFB3B3B3);
+  static const textTertiary = Color(0xFF949494);
+  static const textOnBrand = Color(0xFF000000);
 
-  /// Reservado. Significa "acontecendo agora" e mais nada — nunca erro, nunca exclusão.
-  static const aoVivo = Color(0xFFE3271E);
+  static const orange = Color(0xFFF6821F);      // cor da emissora (tenant)
+  static const orangeStrong = Color(0xFFE56D0A);
+  static const green = Color(0xFF3DB528);
+  static const live = Color(0xFFFF3B30);        // rótulo NO AR
+  static const liveDot = Color(0xFFFF1F14);     // ponto pulsante
 
-  static const texto = Color(0xFFFFFFFF);
-  static const texto2 = Color(0xFF9A9AA0);
-  static const texto3 = Color(0xFF63636B);
-
-  static ThemeData montar() {
-    final base = ThemeData.dark(useMaterial3: true);
-    return base.copyWith(
-      scaffoldBackgroundColor: fundo,
-      colorScheme: base.colorScheme.copyWith(
-        primary: laranja,
-        surface: superficie,
-        onPrimary: Colors.white,
-      ),
-      textTheme: base.textTheme.apply(bodyColor: texto, displayColor: texto),
-    );
-  }
+  static const momentGradient = LinearGradient(
+    begin: Alignment.topLeft, end: Alignment.bottomRight,
+    colors: [Color(0xFFF6821F), Color(0xFFB35708)],
+  );
+  static const playerGradient = LinearGradient(
+    begin: Alignment.topCenter, end: Alignment.bottomCenter,
+    colors: [Color(0xFFB35708), Color(0xFF3A1D05), Color(0xFF0A0A0A)],
+    stops: [0.0, 0.42, 1.0],
+  );
 }
 
-/// Espaçamentos — poucos valores, usados com consistência.
-class Espaco {
-  static const xs = 6.0;
-  static const sm = 10.0;
-  static const md = 16.0;
-  static const lg = 24.0;
-  static const xl = 34.0;
+class BandFMRadii {
+  static const sm = 8.0, md = 12.0, lg = 14.0, card = 18.0, hero = 20.0, art = 10.0;
+  static const bubble = 14.0, bubbleTail = 4.0, pill = 999.0;
+}
+
+class BandFMSpacing {
+  static const x1 = 4.0, x2 = 8.0, x3 = 12.0, x4 = 16.0, x5 = 24.0, x6 = 32.0;
+  static const screenPadding = 18.0;
+  static const minTouchTarget = 44.0;
+}
+
+/// Fonte nativa do sistema — não empacotar webfont no app.
+ThemeData bandFmTheme() {
+  const base = TextStyle(color: BandFMColors.textPrimary, letterSpacing: -0.15);
+  return ThemeData(
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: BandFMColors.bg,
+    colorScheme: const ColorScheme.dark(
+      primary: BandFMColors.orange,
+      onPrimary: BandFMColors.textOnBrand,
+      surface: BandFMColors.surface,
+      error: BandFMColors.live,
+    ),
+    textTheme: TextTheme(
+      displayLarge: base.copyWith(fontSize: 30, fontWeight: FontWeight.w800, height: 1.1),
+      headlineMedium: base.copyWith(fontSize: 25, fontWeight: FontWeight.w800, height: 1.15),
+      titleLarge: base.copyWith(fontSize: 24, fontWeight: FontWeight.w800),
+      titleMedium: base.copyWith(fontSize: 19, fontWeight: FontWeight.w800),
+      titleSmall: base.copyWith(fontSize: 14, fontWeight: FontWeight.w700),
+      bodyLarge: base.copyWith(fontSize: 15, fontWeight: FontWeight.w400, height: 1.5),
+      bodyMedium: base.copyWith(fontSize: 14.5, fontWeight: FontWeight.w400, height: 1.4),
+      bodySmall: base.copyWith(fontSize: 12.5, color: BandFMColors.textTertiary),
+      labelSmall: base.copyWith(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.32),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: BandFMColors.orange,
+        foregroundColor: BandFMColors.textOnBrand,
+        minimumSize: const Size.fromHeight(52),
+        shape: const StadiumBorder(),
+        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+      ),
+    ),
+  );
 }

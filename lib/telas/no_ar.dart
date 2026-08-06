@@ -1,138 +1,110 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import '../estado_no_ar.dart';
 import '../tema.dart';
 import '../widgets/pulso.dart';
+import '../widgets/comuns.dart';
 import '../widgets/cartao_momento.dart';
-import '../widgets/banner_anuncio.dart';
-import '../widgets/mini_player.dart';
-import '../widgets/marca_emissora.dart';
 
-/// O No Ar.
+/// 02 · 03 · 05 — O No Ar.
 ///
-/// **A Home deixa de existir.** O usuário não entra num menu — entra no que está
-/// acontecendo naquele instante. É o conceito de presente.
+/// **A Home deixa de existir.** O usuário não entra num menu, entra no que está
+/// acontecendo naquele instante.
 ///
-/// A hierarquia é fixa e não se negocia:
-///   1. Presença — a rádio está ao vivo, qual programa, quem apresenta
-///   2. Contexto — o que está acontecendo
-///   3. Participação — o que ele pode fazer agora
-///   4. Continuidade — o que vem depois
+/// A tela renderiza **por estado**, não por lista fixa de blocos:
+/// normal · comMomento · promoção · transição · especial · contingência.
 ///
-/// E o app nunca pode parecer parado: mesmo sem Momento ativo, o programa, o locutor,
-/// a próxima atração e a promoção mantêm a tela viva.
-class TelaNoAr extends StatefulWidget {
-  final String? streamUrl;
-  const TelaNoAr({super.key, this.streamUrl});
-
-  @override
-  State<TelaNoAr> createState() => _TelaNoArState();
-}
-
-class _TelaNoArState extends State<TelaNoAr> {
-  final _estado = EstadoNoAr();
-
-  @override
-  void initState() {
-    super.initState();
-    _estado.iniciar();
-  }
-
-  @override
-  void dispose() {
-    _estado.dispose();
-    super.dispose();
-  }
+/// E nunca pode parecer parada: sem Momento, o programa, o locutor, a música, a
+/// próxima atração e a evolução da conexão mantêm a tela viva. O silêncio faz parte.
+class TelaNoAr extends StatelessWidget {
+  final EstadoNoAr estado;
+  const TelaNoAr({super.key, required this.estado});
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _estado,
+      animation: estado,
       builder: (context, _) {
-        final programa = _estado.programa;
-        final locutor = _estado.locutor;
-        final momento = _estado.momento;
+        if (estado.estado == null) {
+          return const Center(child: CircularProgressIndicator(color: BandFMColors.orange));
+        }
 
-        return Scaffold(
-          backgroundColor: Tema.fundo,
-          body: SafeArea(
-            bottom: false,
-            child: _estado.estado == null
-                ? const Center(child: CircularProgressIndicator(color: Tema.laranja))
-                : RefreshIndicator(
-                    color: Tema.laranja,
-                    backgroundColor: Tema.superficie,
-                    onRefresh: _estado.atualizar,
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(Espaco.md, Espaco.md, Espaco.md, Espaco.lg),
-                      children: [
-                        _cabecalho(),
-                        const SizedBox(height: Espaco.lg),
+        final programa = estado.programa;
+        final locutor = estado.locutor;
+        final momento = estado.momento;
+        final promocao = estado.promocao;
 
-                        // 1º NÍVEL — presença
-                        if (_estado.aoVivo) ...[
-                          const EtiquetaNoAr(),
-                          const SizedBox(height: Espaco.md),
-                        ],
-                        Text(
-                          programa?['nome']?.toString() ?? 'Band FM',
-                          style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w700, height: 1.15),
-                        ),
-                        if (locutor != null) ...[
-                          const SizedBox(height: Espaco.xs),
-                          Row(children: [
-                            const Icon(Icons.mic_none, size: 16, color: Tema.texto2),
-                            const SizedBox(width: 6),
-                            Text('com ${locutor['nome']}',
-                                style: const TextStyle(fontSize: 15.5, color: Tema.texto2)),
-                          ]),
-                        ],
+        return RefreshIndicator(
+          color: BandFMColors.orange,
+          backgroundColor: BandFMColors.surface,
+          onRefresh: estado.atualizar,
+          child: Stack(children: [
+            // O calor atrás do cabeçalho: a sensação de "no ar" antes de qualquer texto.
+            Container(
+              height: 260,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                  colors: [Color(0xFF3A2110), Color(0x000A0A0A)],
+                  stops: [0.0, 0.92],
+                ),
+              ),
+            ),
+            ListView(
+              padding: const EdgeInsets.fromLTRB(
+                  BandFMSpacing.screenPadding, 8, BandFMSpacing.screenPadding, BandFMSpacing.x5),
+              children: [
+                _cabecalho(),
+                const SizedBox(height: BandFMSpacing.x5),
 
-                        // Pertencimento: um dado vira sensação de coletivo.
-                        if (_estado.ouvintes > 0) ...[
-                          const SizedBox(height: Espaco.sm),
-                          Text(
-                            '${_estado.ouvintes} ${_estado.ouvintes == 1 ? "ouvinte vivendo" : "ouvintes vivendo"} este momento',
-                            style: const TextStyle(fontSize: 13.5, color: Tema.texto3),
-                          ),
-                        ],
+                // 1º NÍVEL — presença
+                Text(
+                  programa?['nome']?.toString() ?? 'Band FM',
+                  style: const TextStyle(
+                      fontSize: 30, fontWeight: FontWeight.w800, height: 1.1, letterSpacing: -.7),
+                ),
+                if (locutor != null) ...[
+                  const SizedBox(height: 5),
+                  Text('com ${locutor['nome']}',
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w500, color: BandFMColors.textSecondary)),
+                ],
 
-                        const SizedBox(height: Espaco.lg),
+                const SizedBox(height: 12),
+                _audiencia(),
+                const SizedBox(height: BandFMSpacing.x5),
 
-                        // 3º NÍVEL — participação. Tem prioridade sobre tudo.
-                        if (momento != null)
-                          CartaoMomento(
-                            key: ValueKey(momento['id']),
-                            momento: momento,
-                            aoResponder: _estado.atualizar,
-                          )
-                        else
-                          _semMomento(),
-
-                        const SizedBox(height: Espaco.md),
-
-                        // Inventário: existe desde o primeiro desenho de tela, mas some
-                        // enquanto há interação disputando a atenção.
-                        BannerAnuncio(ocultar: momento != null),
-
-                        if (_estado.promocao != null) ...[
-                          const SizedBox(height: Espaco.md),
-                          _promocao(),
-                        ],
-
-                        // 4º NÍVEL — continuidade
-                        if (_estado.proxima != null) ...[
-                          const SizedBox(height: Espaco.md),
-                          _proxima(),
-                        ],
-                      ],
-                    ),
+                // 3º NÍVEL — participação. Quando existe, assume a área principal.
+                if (momento != null) ...[
+                  CartaoMomento(
+                    key: ValueKey(momento['id']),
+                    momento: momento,
+                    aoResponder: estado.atualizar,
                   ),
-          ),
-          bottomNavigationBar: MiniPlayer(
-            streamUrl: widget.streamUrl,
-            programa: programa?['nome']?.toString() ?? 'Band FM',
-            locutor: locutor?['nome']?.toString(),
-          ),
+                  const SizedBox(height: BandFMSpacing.x3),
+                ] else if (promocao != null) ...[
+                  _cartaoPromocao(promocao),
+                  const SizedBox(height: BandFMSpacing.x3),
+                ],
+
+                _tocandoAgora(),
+                const SizedBox(height: 10),
+
+                // 4º NÍVEL — continuidade
+                if (estado.proxima != null) ...[
+                  _proximoMomento(),
+                  const SizedBox(height: 10),
+                ],
+
+                _conexao(),
+                const SizedBox(height: 10),
+
+                // Inventário: espaço estrutural, reservado desde o primeiro desenho.
+                // Some quando há Momento — a interação tem prioridade absoluta.
+                if (momento == null) _slotBanner(),
+              ],
+            ),
+          ]),
         );
       },
     );
@@ -140,81 +112,119 @@ class _TelaNoArState extends State<TelaNoAr> {
 
   Widget _cabecalho() => Row(
         children: [
-          const MarcaEmissora(altura: 30),
+          Image.asset('assets/logo-emissora.webp', height: 26),
           const Spacer(),
-          // Perder a rede não vira tela branca: mostra a última foto e avisa discreto.
-          if (_estado.semRede)
+          if (estado.semRede)
             const Row(children: [
-              Icon(Icons.cloud_off, size: 14, color: Tema.texto3),
+              Icon(Symbols.cloud_off, size: 14, color: BandFMColors.textTertiary),
               SizedBox(width: 5),
-              Text('sem conexão', style: TextStyle(fontSize: 12, color: Tema.texto3)),
-            ]),
+              Text('sem conexão', style: TextStyle(fontSize: 11.5, color: BandFMColors.textTertiary)),
+            ])
+          else
+            EtiquetaNoAr(
+              ritmo: estado.momento != null
+                  ? RitmoPulso.momentoAtivo
+                  : estado.aoVivo
+                      ? RitmoPulso.noAr
+                      : RitmoPulso.foraDoAr,
+            ),
         ],
       );
 
-  /// Sem Momento, o app segue vivo. O silêncio faz parte da experiência —
-  /// não é para inventar interação o tempo todo.
-  Widget _semMomento() => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(Espaco.md),
-        decoration: BoxDecoration(
-          color: Tema.superficie,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Tema.borda),
+  /// "15.432 ouvintes vivendo este momento" — nunca "usuários online".
+  /// A linguagem transforma métrica em pertencimento.
+  Widget _audiencia() => Row(children: [
+        const Equalizador(),
+        const SizedBox(width: 9),
+        Text(
+          '${_comPonto(estado.ouvintes)} ${estado.ouvintes == 1 ? 'ouvinte vivendo' : 'ouvintes vivendo'} este momento',
+          style: const TextStyle(
+              fontSize: 12.5, fontWeight: FontWeight.w700, color: BandFMColors.orange, letterSpacing: -.1),
         ),
-        child: const Row(children: [
-          Icon(Icons.graphic_eq, color: Tema.texto3, size: 20),
-          SizedBox(width: Espaco.sm),
-          Expanded(
-            child: Text('A programação está rolando. Fica ligado que já já tem novidade.',
-                style: TextStyle(color: Tema.texto2, fontSize: 14.5, height: 1.35)),
-          ),
-        ]),
-      );
+      ]);
 
-  Widget _promocao() {
-    final p = _estado.promocao!;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(Espaco.md),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Tema.laranja.withValues(alpha: .18), Tema.superficie],
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Tema.laranja.withValues(alpha: .3)),
-      ),
-      child: Row(children: [
-        const Icon(Icons.card_giftcard, color: Tema.laranja, size: 22),
-        const SizedBox(width: Espaco.sm),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('PROMOÇÃO NO AR',
-                style: TextStyle(fontSize: 10.5, letterSpacing: 1.3, color: Tema.laranja, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 5),
-            Text(p['titulo']?.toString() ?? '',
-                style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600, height: 1.25)),
-          ]),
-        ),
-        const Icon(Icons.chevron_right, color: Tema.texto3),
-      ]),
+  static String _comPonto(int n) =>
+      n.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]}.');
+
+  Widget _tocandoAgora() {
+    final musica = estado.musica;
+    return LinhaCartao(
+      icone: const Arte(icone: Symbols.music_note, tamanho: 56, gradiente: BandFMColors.momentGradient),
+      titulo: musica?['titulo']?.toString() ?? 'Band FM 96,1',
+      apoio: musica?['artista']?.toString() ?? 'A programação continua',
+      aDireita: const Icon(Symbols.favorite, size: 20, color: BandFMColors.textTertiary),
     );
   }
 
-  Widget _proxima() {
-    final n = _estado.proxima!;
+  Widget _proximoMomento() {
+    final n = estado.proxima!;
     final quando = DateTime.tryParse(n['comeca']?.toString() ?? '');
     final hora = quando == null
         ? ''
         : '${quando.hour.toString().padLeft(2, '0')}h${quando.minute.toString().padLeft(2, '0')}';
-    return Row(children: [
-      const Icon(Icons.schedule, size: 15, color: Tema.texto3),
-      const SizedBox(width: 7),
-      Expanded(
-        child: Text('A seguir, $hora · ${n['nome']}',
-            style: const TextStyle(fontSize: 13.5, color: Tema.texto3)),
-      ),
-    ]);
+    return LinhaCartao(
+      icone: const Arte(icone: Symbols.schedule, tamanho: 44),
+      titulo: 'A seguir, $hora',
+      apoio: n['nome']?.toString(),
+    );
   }
+
+  Widget _conexao() => LinhaCartao(
+        icone: const Arte(icone: Symbols.trending_up, tamanho: 44),
+        titulo: 'Sua conexão cresceu nesta semana',
+        apoio: '3h20 de escuta · 4 Momentos',
+        aDireita: const Icon(Symbols.chevron_right, size: 20, color: BandFMColors.textTertiary),
+      );
+
+  /// 05 · Estado "Promoção": ela ocupa a área principal.
+  /// Promoções não são aba — vivem no No Ar, em Momentos e em Sua Rádio.
+  Widget _cartaoPromocao(Map<String, dynamic> p) => Cartao(
+        padding: EdgeInsets.zero,
+        borda: Border.all(color: BandFMColors.orange.withValues(alpha: .35)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            height: 120,
+            decoration: const BoxDecoration(
+              gradient: BandFMColors.momentGradient,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(BandFMRadii.card)),
+            ),
+            child: const Center(child: Icon(Symbols.local_activity, size: 40, color: Colors.white)),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(BandFMSpacing.x4),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const RotuloSecao('Promoção no ar'),
+              const SizedBox(height: 8),
+              Text(p['titulo']?.toString() ?? '',
+                  style: const TextStyle(
+                      fontSize: 22, fontWeight: FontWeight.w800, height: 1.15, letterSpacing: -.4)),
+              const SizedBox(height: 8),
+              const Text('Participe agora. O resultado sai ao vivo, com o locutor.',
+                  style: TextStyle(fontSize: 14, height: 1.45, color: BandFMColors.textSecondary)),
+              const SizedBox(height: BandFMSpacing.x4),
+              FilledButton(onPressed: () {}, child: const Text('Quero participar')),
+              const SizedBox(height: 8),
+              const Center(
+                child: Text('Regras completas na próxima tela',
+                    style: TextStyle(fontSize: 12, color: BandFMColors.textTertiary)),
+              ),
+            ]),
+          ),
+        ]),
+      );
+
+  Widget _slotBanner() => Container(
+        height: 66,
+        decoration: BoxDecoration(
+          color: BandFMColors.surface,
+          borderRadius: BorderRadius.circular(BandFMRadii.md),
+          border: Border.all(color: BandFMColors.line),
+        ),
+        child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Symbols.ads_click, size: 16, color: BandFMColors.textTertiary),
+          SizedBox(width: 8),
+          Text('Banner contextual · patrocinado',
+              style: TextStyle(fontSize: 12.5, color: BandFMColors.textTertiary)),
+        ]),
+      );
 }

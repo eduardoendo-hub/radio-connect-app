@@ -26,6 +26,9 @@ class EstadoNoAr extends ChangeNotifier {
   Map<String, dynamic>? get momento => _estado?['momento'] as Map<String, dynamic>?;
   Map<String, dynamic>? get promocao => _estado?['promocao'] as Map<String, dynamic>?;
   Map<String, dynamic>? get proxima => _estado?['proxima'] as Map<String, dynamic>?;
+  /// Metadado da música vem do stream quando existe; no MVP pode ser nulo, e a tela
+  /// cai para o nome da emissora sem parecer quebrada.
+  Map<String, dynamic>? get musica => _estado?['now_playing'] as Map<String, dynamic>?;
   int get ouvintes => (_estado?['ouvintes'] as num?)?.toInt() ?? 0;
 
   Future<void> iniciar() async {
@@ -37,8 +40,14 @@ class EstadoNoAr extends ChangeNotifier {
   Future<void> atualizar() async {
     try {
       final r = await Api.obter('/no-ar', etag: _etag);
+      // Voltar a ter rede também é mudança de estado: precisa avisar a interface,
+      // senão o aviso de "sem conexão" fica preso na tela mesmo já reconectado.
+      final voltouARede = _semRede;
       _semRede = false;
-      if (r['_naoMudou'] == true) return;
+      if (r['_naoMudou'] == true) {
+        if (voltouARede) notifyListeners();
+        return;
+      }
       _estado = r;
       _etag = 'W/"${r['versao']}"';
       notifyListeners();

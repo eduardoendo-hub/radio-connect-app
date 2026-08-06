@@ -38,6 +38,7 @@ dependencies:
   http: ^1.6.0
   shared_preferences: ^2.5.5
   just_audio: ^0.10.6
+  material_symbols_icons: ^4.2960.0
 
 dev_dependencies:
   flutter_test:
@@ -66,6 +67,7 @@ flutter:
     # tenant e é injetado no build de cada rádio — aqui fica embutido porque este
     # pacote é o da Band FM.
     - assets/logo-emissora.webp
+    - assets/band-eye.webp
 
   # To add assets to your application, add an assets section, like this:
   # assets:
