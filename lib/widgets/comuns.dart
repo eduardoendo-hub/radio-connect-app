@@ -56,6 +56,9 @@ class LinhaCartao extends StatelessWidget {
   final Widget? aDireita;
   final VoidCallback? aoTocar;
   final double opacidade;
+  /// Terceira linha, abaixo do apoio. Usada para a marca da própria participação —
+  /// "você votou em X" — que é informação da pessoa, não da rádio.
+  final Widget? rodape;
 
   const LinhaCartao({
     super.key,
@@ -65,6 +68,7 @@ class LinhaCartao extends StatelessWidget {
     this.aDireita,
     this.aoTocar,
     this.opacidade = 1,
+    this.rodape,
   });
 
   @override
@@ -88,6 +92,10 @@ class LinhaCartao extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(apoio!,
                         style: const TextStyle(fontSize: 12.5, color: BandFMColors.textTertiary, height: 1.3)),
+                  ],
+                  if (rodape != null) ...[
+                    const SizedBox(height: 5),
+                    rodape!,
                   ],
                 ],
               ),

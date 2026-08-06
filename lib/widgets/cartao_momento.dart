@@ -37,6 +37,7 @@ class _CartaoMomentoState extends State<CartaoMomento> {
     super.initState();
     _tick();
     _relogio = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+    _conferirSeJaRespondi();
   }
 
   @override
@@ -44,6 +45,27 @@ class _CartaoMomentoState extends State<CartaoMomento> {
     super.didUpdateWidget(anterior);
     if (anterior.momento['id'] != widget.momento['id']) {
       setState(() { _resultado = null; _mensagem = null; _erro = null; _escolhida = null; });
+      _conferirSeJaRespondi();
+    }
+  }
+
+  /// O Estado No Ar é igual para toda a emissora — por isso é cacheável e por isso
+  /// não sabe o que **esta** pessoa respondeu. Sem esta conferência, quem votou e
+  /// depois voltou à tela era convidado a votar de novo, e só descobria pelo erro do
+  /// servidor. Uma requisição, quando o cartão abre.
+  Future<void> _conferirSeJaRespondi() async {
+    final id = widget.momento['id']?.toString();
+    if (id == null) return;
+    try {
+      final r = await Api.obter('/momentos/$id/resultado');
+      if (!mounted || r['respondi'] != true) return;
+      setState(() {
+        _escolhida = r['minhaOpcaoId']?.toString();
+        _resultado = r;
+      });
+    } catch (_) {
+      // Falhar aqui só significa mostrar o convite: o servidor recusa o voto repetido
+      // de qualquer forma, e a mensagem é clara.
     }
   }
 
@@ -85,7 +107,9 @@ class _CartaoMomentoState extends State<CartaoMomento> {
 
   @override
   Widget build(BuildContext context) {
-    if (_resultado != null) return _Resultado(resultado: _resultado!, mensagem: _mensagem);
+    if (_resultado != null) {
+      return _Resultado(resultado: _resultado!, mensagem: _mensagem, minhaOpcaoId: _escolhida);
+    }
 
     final m = widget.momento;
     final opcoes = (m['opcoes'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
@@ -319,7 +343,10 @@ class _CartaoMomentoState extends State<CartaoMomento> {
 class _Resultado extends StatelessWidget {
   final Map<String, dynamic> resultado;
   final String? mensagem;
-  const _Resultado({required this.resultado, this.mensagem});
+  /// Qual opção foi a desta pessoa. O resultado coletivo sem a marca do próprio voto
+  /// é notícia; com ela, é a memória de ter participado.
+  final String? minhaOpcaoId;
+  const _Resultado({required this.resultado, this.mensagem, this.minhaOpcaoId});
 
   @override
   Widget build(BuildContext context) {
@@ -365,6 +392,7 @@ class _Resultado extends StatelessWidget {
               final o = e.value;
               final pct = (o['percentual'] as num?)?.toInt() ?? 0;
               final vencedora = e.key == 0 && total > 0;
+              final minha = minhaOpcaoId != null && o['id']?.toString() == minhaOpcaoId;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 14),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -372,13 +400,30 @@ class _Resultado extends StatelessWidget {
                     Expanded(
                       child: Text(
                         '${o['emoji'] ?? ''} ${o['rotulo']}'.trim(),
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 14,
-                          fontWeight: vencedora ? FontWeight.w700 : FontWeight.w500,
-                          color: vencedora ? BandFMColors.textPrimary : BandFMColors.textSecondary,
+                          fontWeight: vencedora || minha ? FontWeight.w700 : FontWeight.w500,
+                          color: vencedora || minha
+                              ? BandFMColors.textPrimary
+                              : BandFMColors.textSecondary,
                         ),
                       ),
                     ),
+                    if (minha) ...[
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: BandFMColors.orange.withValues(alpha: .18),
+                          borderRadius: BorderRadius.circular(BandFMRadii.pill),
+                        ),
+                        child: const Text('seu voto',
+                            style: TextStyle(
+                                fontSize: 10.5, fontWeight: FontWeight.w700,
+                                color: BandFMColors.orange)),
+                      ),
+                    ],
                     Text('$pct%',
                         style: TextStyle(
                           fontSize: 14, fontWeight: FontWeight.w800,

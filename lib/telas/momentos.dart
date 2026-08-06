@@ -40,9 +40,15 @@ class _TelaMomentosState extends State<TelaMomentos> {
     _relogio = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted && _lista.any((m) => m['estado'] == 'ATIVO')) setState(() {});
     });
+    // Rede de segurança a cada 30 s: o gatilho principal é a mudança do No Ar, mas
+    // votos que chegam, Momentos que encerram e resultados que a produção publica não
+    // mudam o Momento ativo — e sem isso a lista ficaria velha na mão de quem só
+    // está olhando.
+    _recarga = Timer.periodic(const Duration(seconds: 30), (_) => _carregar());
   }
 
   Timer? _relogio;
+  Timer? _recarga;
 
   void _quandoONoArMuda() {
     final agoraAtivo = widget.estado.momento?['id']?.toString();
@@ -54,6 +60,7 @@ class _TelaMomentosState extends State<TelaMomentos> {
   @override
   void dispose() {
     _relogio?.cancel();
+    _recarga?.cancel();
     widget.estado.removeListener(_quandoONoArMuda);
     super.dispose();
   }
@@ -138,6 +145,9 @@ class _TelaMomentosState extends State<TelaMomentos> {
     final opcoes = (m['opcoes'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
     final fim = DateTime.tryParse(m['fimEm']?.toString() ?? '');
     final restante = fim == null ? Duration.zero : fim.difference(DateTime.now());
+    // O voto pode ter saído daqui ou da tela No Ar — para esta tela dá no mesmo.
+    final minha = m['minhaOpcaoId']?.toString();
+    final jaVotou = minha != null || m['respondi'] == true;
 
     return Cartao(
       borda: Border.all(color: BandFMColors.orange.withValues(alpha: .45)),
@@ -162,41 +172,54 @@ class _TelaMomentosState extends State<TelaMomentos> {
 
         // Reações de um toque. **Sempre com rótulo textual junto do emoji** —
         // exigência de acessibilidade: emoji sozinho não é lido por leitor de tela.
+        //
+        // Depois de votar as opções continuam na tela, mas só a escolhida fica acesa.
+        // Trocar tudo por um "obrigado" apagaria o que a pessoa acabou de fazer; ela
+        // precisa ver a própria resposta ali, e continuar esperando o resultado junto
+        // com todo mundo.
         Row(
           children: opcoes.asMap().entries.map((e) {
             final o = e.value;
             final id = o['id']?.toString();
-            final aceso = _respondendo == id;
+            final escolhida = jaVotou ? id == minha : _respondendo == id;
+            final apagada = jaVotou && !escolhida;
             return Expanded(
               child: Padding(
                 padding: EdgeInsets.only(right: e.key < opcoes.length - 1 ? 8 : 0),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: _respondendo != null ? null : () => _reagir(m['id'].toString(), id),
-                    borderRadius: BorderRadius.circular(BandFMRadii.md),
-                    child: Container(
-                      constraints: const BoxConstraints(minHeight: BandFMSpacing.minTouchTarget),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: aceso
-                            ? BandFMColors.orange.withValues(alpha: .16)
-                            : BandFMColors.surfaceRaised,
-                        borderRadius: BorderRadius.circular(BandFMRadii.md),
-                        border: Border.all(
-                          color: aceso ? BandFMColors.orange : Colors.transparent,
+                child: Opacity(
+                  opacity: apagada ? .4 : 1,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: (jaVotou || _respondendo != null)
+                          ? null
+                          : () => _reagir(m['id'].toString(), id),
+                      borderRadius: BorderRadius.circular(BandFMRadii.md),
+                      child: Container(
+                        constraints: const BoxConstraints(minHeight: BandFMSpacing.minTouchTarget),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: escolhida
+                              ? BandFMColors.orange.withValues(alpha: .16)
+                              : BandFMColors.surfaceRaised,
+                          borderRadius: BorderRadius.circular(BandFMRadii.md),
+                          border: Border.all(
+                            color: escolhida ? BandFMColors.orange : Colors.transparent,
+                          ),
                         ),
+                        child: Column(children: [
+                          Text(o['emoji']?.toString() ?? '·', style: const TextStyle(fontSize: 20)),
+                          const SizedBox(height: 5),
+                          Text(o['rotulo']?.toString() ?? '',
+                              textAlign: TextAlign.center,
+                              maxLines: 1, overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 11.5, fontWeight: FontWeight.w600,
+                                  color: escolhida
+                                      ? BandFMColors.orange
+                                      : BandFMColors.textSecondary)),
+                        ]),
                       ),
-                      child: Column(children: [
-                        Text(o['emoji']?.toString() ?? '·', style: const TextStyle(fontSize: 20)),
-                        const SizedBox(height: 5),
-                        Text(o['rotulo']?.toString() ?? '',
-                            textAlign: TextAlign.center,
-                            maxLines: 1, overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 11.5, fontWeight: FontWeight.w600,
-                                color: BandFMColors.textSecondary)),
-                      ]),
                     ),
                   ),
                 ),
@@ -204,6 +227,24 @@ class _TelaMomentosState extends State<TelaMomentos> {
             );
           }).toList(),
         ),
+
+        if (jaVotou) ...[
+          const SizedBox(height: 12),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Padding(
+              padding: EdgeInsets.only(top: 1),
+              child: Icon(Symbols.check_circle, fill: 1, size: 15, color: BandFMColors.orange),
+            ),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                'Você já participou. O resultado sai quando o Momento encerrar.',
+                style: const TextStyle(
+                    fontSize: 12.5, color: BandFMColors.textSecondary, height: 1.3),
+              ),
+            ),
+          ]),
+        ],
       ]),
     );
   }
@@ -230,8 +271,16 @@ class _TelaMomentosState extends State<TelaMomentos> {
         : 0;
     final encerrado = m['estado'] != 'ATIVO';
 
+    final minhaId = m['minhaOpcaoId']?.toString();
+    final minha = minhaId == null
+        ? null
+        : opcoes.firstWhere((o) => o['id']?.toString() == minhaId, orElse: () => const {});
+    final acertou = minha != null && vencedora != null && minha['id'] == vencedora['id'];
+
     return LinhaCartao(
-      opacidade: encerrado ? .65 : 1,
+      // Um Momento de que a pessoa participou não desbota junto com os outros: é
+      // memória dela, não histórico da rádio.
+      opacidade: encerrado && minhaId == null ? .65 : 1,
       icone: Arte(
         icone: m['tipo'] == 'AVISO' ? Symbols.campaign : Symbols.how_to_vote,
         tamanho: 44,
@@ -240,6 +289,29 @@ class _TelaMomentosState extends State<TelaMomentos> {
       apoio: vencedora != null && total > 0
           ? '${vencedora['rotulo']} venceu com $pct%'
           : (encerrado ? 'Encerrado' : 'No ar'),
+      // "Você votou em Ana Castela" — e um selo quando a escolha dela foi a vencedora.
+      // É o fechamento que faz a participação valer: sem isso o voto some no nada.
+      rodape: minha == null || minha.isEmpty
+          ? null
+          : Row(children: [
+              Icon(acertou ? Symbols.trophy : Symbols.check_circle,
+                  fill: 1, size: 13,
+                  color: acertou ? BandFMColors.orange : BandFMColors.textTertiary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  acertou
+                      ? 'Você votou em ${minha['rotulo']} — e ela ganhou'
+                      : 'Você votou em ${minha['rotulo']}',
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: acertou ? BandFMColors.orange : BandFMColors.textTertiary,
+                    fontWeight: acertou ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ),
+            ]),
       aDireita: const Icon(Symbols.chevron_right, size: 18, color: BandFMColors.textTertiary),
     );
   }
