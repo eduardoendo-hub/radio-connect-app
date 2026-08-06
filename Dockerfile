@@ -19,7 +19,15 @@ ARG API_URL=https://api.radioconnect.technowhub.ai/v1
 ARG TENANT=bandfm
 ARG STREAM_URL=
 
+# --pwa-strategy=none desliga o service worker.
+#
+# O service worker do Flutter cacheia tudo por conta própria e IGNORA os cabeçalhos
+# do servidor: depois de uma visita, o app fica preso naquela versão mesmo com o
+# nginx mandando no-store. Num produto que ainda muda todo dia, isso é veneno.
+#
+# Quando o app for para as lojas isso deixa de importar — lá quem versiona é a loja.
 RUN flutter build web --release \
+      --pwa-strategy=none \
       --dart-define=API_URL=$API_URL \
       --dart-define=TENANT=$TENANT \
       --dart-define=STREAM_URL=$STREAM_URL
