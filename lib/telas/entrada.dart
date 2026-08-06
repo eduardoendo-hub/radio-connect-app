@@ -36,6 +36,13 @@ class _TelaEntradaState extends State<TelaEntrada> {
   }
 
   Future<void> _pedirCodigo() async {
+    // Valida antes de ir ao servidor: se o campo está vazio, a pessoa precisa saber
+    // disso e não receber uma mensagem genérica de dados inválidos.
+    final numero = _telefone.text.replaceAll(RegExp(r'\D'), '');
+    if (numero.length < 10) {
+      setState(() => _erro = 'Digite seu telefone com DDD, só números.');
+      return;
+    }
     setState(() { _ocupado = true; _erro = null; });
     try {
       final r = await Api.enviar('/auth/codigo', {'telefone': _telefone.text});
@@ -52,6 +59,10 @@ class _TelaEntradaState extends State<TelaEntrada> {
   }
 
   Future<void> _entrar() async {
+    if (_codigo.text.trim().length < 6) {
+      setState(() => _erro = 'Digite os 6 números do código.');
+      return;
+    }
     setState(() { _ocupado = true; _erro = null; });
     try {
       final r = await Api.enviar('/auth/entrar', {
