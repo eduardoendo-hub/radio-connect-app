@@ -1,6 +1,10 @@
 # ===== Build =====
-# Imagem oficial com o SDK do Flutter. Pesada, mas só existe em tempo de build.
-FROM ghcr.io/cirruslabs/flutter:3.44.8 AS build
+# SDK do Flutter. Pesado, mas só existe em tempo de build — o runtime é nginx.
+#
+# Usamos `stable` porque a imagem não publica tag para a 3.44.8. O CI trava a versão
+# exata na análise e nos testes, então uma divergência aqui aparece lá antes de chegar
+# em produção. Quando a tag existir, vale fixar.
+FROM ghcr.io/cirruslabs/flutter:stable AS build
 WORKDIR /app
 
 # Camada de dependências separada: muda pouco, então o cache aproveita.
