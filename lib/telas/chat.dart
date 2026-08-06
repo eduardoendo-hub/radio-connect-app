@@ -27,9 +27,10 @@ class _Mensagem {
   final String texto;
   final bool minha;
   final String hora;
+  /// A duração vem junto quando o envio de áudio existir; até lá o balão mostra só
+  /// a forma de onda.
   final bool audio;
-  final String? duracao;
-  const _Mensagem(this.texto, this.minha, this.hora, {this.audio = false, this.duracao});
+  const _Mensagem(this.texto, this.minha, this.hora, {this.audio = false});
 }
 
 class _TelaChatState extends State<TelaChat> {
@@ -257,11 +258,6 @@ class _TelaChatState extends State<TelaChat> {
                   );
                 }),
               ),
-              const SizedBox(width: 9),
-              Text(m.duracao ?? '',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: (m.minha ? Colors.black : Colors.white).withValues(alpha: .7))),
             ])
           else
             Text(
