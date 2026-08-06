@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import '../api.dart';
 import '../tema.dart';
 
 /// 07 · Chat.
@@ -10,9 +13,9 @@ import '../tema.dart';
 /// Linguagem de mensageiro, porque é o que o brasileiro já tem no dedo: balões com
 /// canto reto do lado do remetente, horário dentro do balão, `done_all` nos enviados.
 ///
-/// **Estado atual: conversa simulada.** O backend já tem o modelo de Conversa e
-/// Mensagem, e a integração com o Chatwoot entra em seguida — as mensagens abaixo
-/// existem para validar a linguagem visual antes de ligar o motor.
+/// A conversa é real: o que a pessoa escreve aqui cai na fila da produção no Studio, e
+/// a resposta do produtor volta por esta mesma tela. O Chatwoot entra depois como motor
+/// de atendimento, espelhando as duas pontas — nada nesta tela muda quando isso ligar.
 class TelaChat extends StatefulWidget {
   const TelaChat({super.key});
 
@@ -31,26 +34,90 @@ class _Mensagem {
 
 class _TelaChatState extends State<TelaChat> {
   final _campo = TextEditingController();
+  final _rolagem = ScrollController();
+  var _mensagens = <_Mensagem>[];
+  bool _carregando = true;
+  bool _enviando = false;
+  Timer? _relogio;
 
-  final _mensagens = <_Mensagem>[
-    const _Mensagem('Bom dia! 🧡 Manda seu recado ou o pedido de música que a gente coloca no ar.',
-        false, '9:01'),
-    const _Mensagem('Bom dia! Alô pra turma da firma em Osasco 🙌', true, '9:04'),
-    const _Mensagem('', true, '9:05', audio: true, duracao: '0:12'),
-    const _Mensagem('Anotado, Maria! Seu alô sai no ar depois do intervalo. 🎶', false, '9:07'),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+    // A resposta da produção precisa chegar sozinha: o ouvinte não vai puxar para
+    // atualizar esperando um alô.
+    _relogio = Timer.periodic(const Duration(seconds: 5), (_) => _carregar(silencioso: true));
+  }
 
-  void _enviar() {
+  String _hora(String iso) {
+    final d = DateTime.tryParse(iso)?.toLocal();
+    if (d == null) return '';
+    return '${d.hour}:${d.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _carregar({bool silencioso = false}) async {
+    try {
+      final r = await Api.obter('/conversa');
+      if (!mounted) return;
+      final lista = ((r['mensagens'] as List?) ?? [])
+          .cast<Map<String, dynamic>>()
+          .map((m) => _Mensagem(
+                m['conteudo']?.toString() ?? '',
+                m['direcao'] == 'ouvinte_para_radio',
+                _hora(m['enviadaEm']?.toString() ?? ''),
+                audio: m['tipo'] == 'audio',
+              ))
+          .toList();
+      final cresceu = lista.length != _mensagens.length;
+      setState(() {
+        _mensagens = lista;
+        _carregando = false;
+      });
+      if (cresceu) _aoFim();
+    } catch (_) {
+      if (mounted && !silencioso) setState(() => _carregando = false);
+    }
+  }
+
+  void _aoFim() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_rolagem.hasClients) {
+        _rolagem.animateTo(_rolagem.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 220), curve: Curves.easeOut);
+      }
+    });
+  }
+
+  Future<void> _enviar() async {
     final t = _campo.text.trim();
-    if (t.isEmpty) return;
+    if (t.isEmpty || _enviando) return;
+    setState(() => _enviando = true);
+    // Aparece na hora: a mensagem é da pessoa, não do servidor. Se falhar, a recarga
+    // seguinte tira — mas travar o dedo esperando a rede é pior.
     setState(() {
-      _mensagens.add(_Mensagem(t, true, TimeOfDay.now().format(context)));
+      _mensagens = [..._mensagens, _Mensagem(t, true, TimeOfDay.now().format(context))];
       _campo.clear();
     });
+    _aoFim();
+    try {
+      await Api.enviar('/conversa/mensagens', {'conteudo': t});
+      await _carregar(silencioso: true);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Sua mensagem não saiu. Tente de novo.'),
+          backgroundColor: BandFMColors.surfaceRaised,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
   }
 
   @override
   void dispose() {
+    _relogio?.cancel();
+    _rolagem.dispose();
     _campo.dispose();
     super.dispose();
   }
@@ -61,19 +128,46 @@ class _TelaChatState extends State<TelaChat> {
       _cabecalho(),
       Expanded(
         child: _PapelDePontos(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(14, 16, 14, 10),
-            children: [
-              _avisoPrivacidade(),
-              const SizedBox(height: 14),
-              ..._mensagens.map(_balao),
-            ],
-          ),
+          child: _carregando
+              ? const Center(child: CircularProgressIndicator(color: BandFMColors.orange))
+              : ListView(
+                  controller: _rolagem,
+                  padding: const EdgeInsets.fromLTRB(14, 16, 14, 10),
+                  children: [
+                    _avisoPrivacidade(),
+                    const SizedBox(height: 14),
+                    if (_mensagens.isEmpty) _primeiraVez(),
+                    ..._mensagens.map(_balao),
+                  ],
+                ),
         ),
       ),
       _barra(),
     ]);
   }
+
+  /// Conversa vazia não pode parecer erro. O convite é o primeiro balão.
+  Widget _primeiraVez() => Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * .78),
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          decoration: const BoxDecoration(
+            color: BandFMColors.surfaceRaised,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(BandFMRadii.bubble),
+              topRight: Radius.circular(BandFMRadii.bubble),
+              bottomLeft: Radius.circular(BandFMRadii.bubbleTail),
+              bottomRight: Radius.circular(BandFMRadii.bubble),
+            ),
+          ),
+          child: const Text(
+            'Oi! 🧡 Manda seu recado ou o pedido de música que a gente coloca no ar.',
+            style: TextStyle(fontSize: 14.5, height: 1.35),
+          ),
+        ),
+      );
 
   Widget _cabecalho() => Container(
         padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
@@ -234,7 +328,7 @@ class _TelaChatState extends State<TelaChat> {
           const SizedBox(width: 8),
           // Áudio é essencial em rádio: a emissora pode levar a mensagem ao ar.
           GestureDetector(
-            onTap: _enviar,
+            onTap: _enviando ? null : _enviar,
             child: Container(
               width: BandFMSpacing.minTouchTarget,
               height: BandFMSpacing.minTouchTarget,

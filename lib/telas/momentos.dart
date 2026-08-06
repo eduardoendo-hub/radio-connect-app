@@ -23,11 +23,39 @@ class _TelaMomentosState extends State<TelaMomentos> {
   List<Map<String, dynamic>> _lista = [];
   bool _carregando = true;
   String? _respondendo;
+  String? _ultimoAtivo;
 
   @override
   void initState() {
     super.initState();
     _carregar();
+    // As abas vivem dentro de um IndexedStack: esta tela é montada uma vez e fica viva
+    // o app inteiro. Sem escutar o No Ar, um Momento publicado pelo produtor só
+    // aparecia se a pessoa fechasse e abrisse o app — que é exatamente o oposto do
+    // produto. O No Ar já consulta o servidor sozinho; aqui só reagimos à mudança,
+    // sem tráfego novo.
+    _ultimoAtivo = widget.estado.momento?['id']?.toString();
+    widget.estado.addListener(_quandoONoArMuda);
+    // O tempo que resta precisa andar na tela. Um segundo, e só quando há algo no ar.
+    _relogio = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _lista.any((m) => m['estado'] == 'ATIVO')) setState(() {});
+    });
+  }
+
+  Timer? _relogio;
+
+  void _quandoONoArMuda() {
+    final agoraAtivo = widget.estado.momento?['id']?.toString();
+    if (agoraAtivo == _ultimoAtivo) return;
+    _ultimoAtivo = agoraAtivo;
+    _carregar();
+  }
+
+  @override
+  void dispose() {
+    _relogio?.cancel();
+    widget.estado.removeListener(_quandoONoArMuda);
+    super.dispose();
   }
 
   Future<void> _carregar() async {
