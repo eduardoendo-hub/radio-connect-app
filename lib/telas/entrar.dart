@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../api.dart';
 import '../tema.dart';
+import '../widgets/marca_emissora.dart';
 
 /// Cadastro.
 ///
@@ -82,21 +83,11 @@ class _TelaEntrarState extends State<TelaEntrar> {
                 children: [
                   // A marca é da RÁDIO. White-label total: nenhuma menção ao
                   // Radio Connect em nenhum canto do app do ouvinte.
-                  Align(
+                  const Align(
                     alignment: Alignment.centerLeft,
-                    child: Container(
-                      width: 68, height: 68,
-                      decoration: BoxDecoration(
-                        color: Tema.laranja,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: const Icon(Icons.radio, color: Colors.white, size: 34),
-                    ),
+                    child: MarcaEmissora(altura: 52),
                   ),
                   const SizedBox(height: Espaco.lg),
-                  const Text('Band FM',
-                      style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700, height: 1.1)),
-                  const SizedBox(height: Espaco.xs),
                   const Text(
                     'Milhões de ouvintes.\nUma rádio só sua.',
                     style: TextStyle(fontSize: 16, color: Tema.texto2, height: 1.4),

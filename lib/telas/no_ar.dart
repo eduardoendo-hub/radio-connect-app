@@ -5,6 +5,7 @@ import '../widgets/pulso.dart';
 import '../widgets/cartao_momento.dart';
 import '../widgets/banner_anuncio.dart';
 import '../widgets/mini_player.dart';
+import '../widgets/marca_emissora.dart';
 
 /// O No Ar.
 ///
@@ -139,13 +140,7 @@ class _TelaNoArState extends State<TelaNoAr> {
 
   Widget _cabecalho() => Row(
         children: [
-          Container(
-            width: 34, height: 34,
-            decoration: BoxDecoration(color: Tema.laranja, borderRadius: BorderRadius.circular(9)),
-            child: const Icon(Icons.radio, color: Colors.white, size: 19),
-          ),
-          const SizedBox(width: Espaco.sm),
-          const Text('Band FM', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+          const MarcaEmissora(altura: 30),
           const Spacer(),
           // Perder a rede não vira tela branca: mostra a última foto e avisa discreto.
           if (_estado.semRede)

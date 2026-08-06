@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import '../tema.dart';
+import 'marca_emissora.dart';
 
 /// O player.
 ///
@@ -89,11 +90,13 @@ class _MiniPlayerState extends State<MiniPlayer> {
             Container(
               width: 42,
               height: 42,
+              padding: const EdgeInsets.all(5),
               decoration: BoxDecoration(
-                color: Tema.laranja,
+                color: Tema.superficieAlta,
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Tema.borda),
               ),
-              child: const Icon(Icons.radio, color: Colors.white, size: 22),
+              child: const MarcaEmissora(altura: 22),
             ),
             const SizedBox(width: Espaco.sm),
             Expanded(
