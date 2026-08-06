@@ -93,22 +93,51 @@ class _CartaoMomentoState extends State<CartaoMomento> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: BandFMColors.momentGradient,
         borderRadius: BorderRadius.circular(BandFMRadii.hero),
+        // Uma borda clara de um pixel: a aresta que pega a luz. É o que separa um
+        // objeto de um retângulo pintado.
+        border: Border.all(color: const Color(0x2EFFFFFF)),
         boxShadow: [
+          // Duas sombras, como qualquer objeto real: o contato escuro logo abaixo…
+          const BoxShadow(
+            color: Color(0xB3000000),
+            blurRadius: 22,
+            offset: Offset(0, 9),
+            spreadRadius: -9,
+          ),
+          // …e o brilho da própria cor espalhado bem mais longe.
           BoxShadow(
-            color: BandFMColors.orange.withValues(alpha: .5),
-            blurRadius: 44,
-            offset: const Offset(0, 18),
-            spreadRadius: -14,
+            color: BandFMColors.orange.withValues(alpha: .42),
+            blurRadius: 52,
+            offset: const Offset(0, 22),
+            spreadRadius: -20,
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: Stack(children: [
+        // A luz vem de cima: um véu branco que morre no meio da altura.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(BandFMRadii.hero),
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x24FFFFFF), Color(0x00FFFFFF)],
+                  stops: [0, .45],
+                ),
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
           // Contexto: quem está perguntando. Sem isso o Momento vira formulário.
           Row(children: [
             Container(
@@ -147,19 +176,25 @@ class _CartaoMomentoState extends State<CartaoMomento> {
 
           if (opcoes.isNotEmpty) ...[
             const SizedBox(height: 18),
-            // Lado a lado quando são duas: a escolha cabe num olhar e num toque.
-            if (opcoes.length == 2)
-              Row(children: [
-                Expanded(child: _opcao(opcoes[0])),
-                const SizedBox(width: 10),
-                Expanded(child: _opcao(opcoes[1])),
-              ])
+            // A reação é horizontal e compacta. Um "Amei / Gostei / Passa" empilhado
+            // em três blocões vira formulário: pede leitura, decisão e rolagem para
+            // uma resposta que devia custar meio segundo.
+            //
+            // Rótulo de música é outro caso — não cabe em pílula. Aí cada opção ocupa
+            // a linha inteira, com o emoji ao lado do texto, nunca acima.
+            if (_cabeEmPilula(opcoes))
+              Wrap(
+                spacing: 9,
+                runSpacing: 9,
+                children: opcoes.map((o) => _pilula(o)).toList(),
+              )
             else
               Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: opcoes
                     .map((o) => Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _opcao(o),
+                          padding: const EdgeInsets.only(bottom: 9),
+                          child: _linhaLarga(o),
                         ))
                     .toList(),
               ),
@@ -181,14 +216,66 @@ class _CartaoMomentoState extends State<CartaoMomento> {
               style: const TextStyle(fontSize: 12.5, color: Color(0xB3FFFFFF), fontWeight: FontWeight.w600),
             ),
           ]),
-        ],
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+
+  /// Reação cabe em pílula; nome de música não. O corte é o tamanho do rótulo mais
+  /// longo — 14 caracteres é o que atravessa a tela em duas ou três pílulas sem
+  /// quebrar em telas de 360 px, que é o Android que a gente precisa atender.
+  bool _cabeEmPilula(List<Map<String, dynamic>> opcoes) {
+    if (opcoes.length > 4) return false;
+    return opcoes.every((o) => (o['rotulo']?.toString() ?? '').length <= 14);
+  }
+
+  /// Pílula: emoji e texto lado a lado, altura de um toque, largura do conteúdo.
+  Widget _pilula(Map<String, dynamic> o) {
+    final id = o['id']?.toString();
+    final aceso = _escolhida == id;
+    final emoji = o['emoji']?.toString() ?? '';
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _enviando ? null : () => _responder(id),
+        borderRadius: BorderRadius.circular(BandFMRadii.pill),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: BandFMSpacing.minTouchTarget),
+          padding: EdgeInsets.fromLTRB(emoji.isEmpty ? 16 : 12, 10, 16, 10),
+          decoration: BoxDecoration(
+            color: aceso ? Colors.white.withValues(alpha: .24) : Colors.black.withValues(alpha: .24),
+            borderRadius: BorderRadius.circular(BandFMRadii.pill),
+            border: Border.all(
+              color: aceso ? Colors.white : const Color(0x1FFFFFFF),
+              width: aceso ? 1.5 : 1,
+            ),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (emoji.isNotEmpty) ...[
+              Text(emoji, style: const TextStyle(fontSize: 17)),
+              const SizedBox(width: 8),
+            ],
+            // O rótulo textual anda sempre junto do emoji: emoji sozinho não é lido
+            // por leitor de tela.
+            Text(
+              o['rotulo']?.toString() ?? '',
+              style: const TextStyle(
+                fontSize: 14.5, fontWeight: FontWeight.w700, color: Colors.white, height: 1.1,
+              ),
+            ),
+          ]),
+        ),
       ),
     );
   }
 
-  Widget _opcao(Map<String, dynamic> o) {
+  /// Linha larga: para rótulo comprido, como nome de música com artista.
+  Widget _linhaLarga(Map<String, dynamic> o) {
     final id = o['id']?.toString();
     final aceso = _escolhida == id;
+    final emoji = o['emoji']?.toString() ?? '';
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -196,31 +283,29 @@ class _CartaoMomentoState extends State<CartaoMomento> {
         borderRadius: BorderRadius.circular(BandFMRadii.lg),
         child: Container(
           constraints: const BoxConstraints(minHeight: BandFMSpacing.minTouchTarget),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: aceso ? Colors.white.withValues(alpha: .22) : Colors.black.withValues(alpha: .22),
+            color: aceso ? Colors.white.withValues(alpha: .24) : Colors.black.withValues(alpha: .24),
             borderRadius: BorderRadius.circular(BandFMRadii.lg),
             border: Border.all(
-              color: aceso ? Colors.white : Colors.transparent,
-              width: 1.5,
+              color: aceso ? Colors.white : const Color(0x1FFFFFFF),
+              width: aceso ? 1.5 : 1,
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (o['emoji'] != null && o['emoji'].toString().isNotEmpty) ...[
-                Text(o['emoji'].toString(), style: const TextStyle(fontSize: 19)),
-                const SizedBox(height: 6),
-              ],
-              Text(
+          child: Row(children: [
+            if (emoji.isNotEmpty) ...[
+              Text(emoji, style: const TextStyle(fontSize: 17)),
+              const SizedBox(width: 10),
+            ],
+            Expanded(
+              child: Text(
                 o['rotulo']?.toString() ?? '',
                 style: const TextStyle(
                   fontSize: 14.5, fontWeight: FontWeight.w700, color: Colors.white, height: 1.25,
                 ),
               ),
-            ],
-          ),
+            ),
+          ]),
         ),
       ),
     );
