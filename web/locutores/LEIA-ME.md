@@ -13,9 +13,9 @@ O Studio carrega daqui também — imagem em `<img>` não sofre CORS.
 - **Sem moldura.** Foto exportada do Instagram costuma vir com o anel colorido em
   volta — dentro do círculo do avatar ele vira um aro esquisito. Corte por dentro
   do anel.
-- **Rosto no terço superior.** As duas telas recortam com o enquadramento puxado
-  para cima (`Alignment(0,-0.25)` no app, `50% 25%` no Studio), porque é onde o
-  rosto está num retrato.
+- **Rosto centrado.** As duas telas recortam pelo centro do arquivo, sem
+  deslocamento — quem decide o enquadramento é quem prepara a imagem. Centralize
+  o rosto aqui e o círculo cai certo nos dois lugares.
 - **512×512, WebP.** Chega para 60px em tela de alta densidade e pesa pouco —
   importa no Android antigo que a gente precisa atender.
 
