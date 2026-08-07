@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../api.dart';
 import '../estado_no_ar.dart';
+import '../estado_respostas.dart';
 import '../tema.dart';
 import '../widgets/comuns.dart';
 import '../widgets/pulso.dart';
@@ -40,6 +41,7 @@ class _TelaMomentosState extends State<TelaMomentos> {
     _relogio = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted && _lista.any((m) => m['estado'] == 'ATIVO')) setState(() {});
     });
+    RegistroDeRespostas.instancia.addListener(_registroMudou);
     // Rede de segurança a cada 30 s: o gatilho principal é a mudança do No Ar, mas
     // votos que chegam, Momentos que encerram e resultados que a produção publica não
     // mudam o Momento ativo — e sem isso a lista ficaria velha na mão de quem só
@@ -57,8 +59,11 @@ class _TelaMomentosState extends State<TelaMomentos> {
     _carregar();
   }
 
+  void _registroMudou() { if (mounted) setState(() {}); }
+
   @override
   void dispose() {
+    RegistroDeRespostas.instancia.removeListener(_registroMudou);
     _relogio?.cancel();
     _recarga?.cancel();
     widget.estado.removeListener(_quandoONoArMuda);
@@ -85,6 +90,7 @@ class _TelaMomentosState extends State<TelaMomentos> {
         if (opcaoId != null) 'opcaoId': opcaoId,
         'chaveIdempotencia': '$momentoId-${DateTime.now().millisecondsSinceEpoch}',
       });
+      RegistroDeRespostas.instancia.marcar(momentoId, opcaoId);
       await _carregar();
       widget.estado.atualizar();
     } on ErroApi catch (e) {
@@ -145,9 +151,13 @@ class _TelaMomentosState extends State<TelaMomentos> {
     final opcoes = (m['opcoes'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
     final fim = DateTime.tryParse(m['fimEm']?.toString() ?? '');
     final restante = fim == null ? Duration.zero : fim.difference(DateTime.now());
-    // O voto pode ter saído daqui ou da tela No Ar — para esta tela dá no mesmo.
-    final minha = m['minhaOpcaoId']?.toString();
-    final jaVotou = minha != null || m['respondi'] == true;
+    // O voto pode ter saído daqui, do No Ar ou da faixa em outra aba — para esta tela
+    // dá no mesmo. O registro responde na hora; o servidor confirma na próxima carga.
+    final idM = m['id']?.toString();
+    final minha = RegistroDeRespostas.instancia.opcaoDe(idM) ?? m['minhaOpcaoId']?.toString();
+    final jaVotou = minha != null ||
+        m['respondi'] == true ||
+        RegistroDeRespostas.instancia.respondeu(idM);
 
     return Cartao(
       borda: Border.all(color: BandFMColors.orange.withValues(alpha: .45)),

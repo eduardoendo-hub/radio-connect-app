@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../api.dart';
 import '../estado_no_ar.dart';
+import '../estado_respostas.dart';
 import '../tema.dart';
 
 /// O Momento se anuncia, em qualquer aba.
@@ -54,6 +55,9 @@ class _AvisoMomentoState extends State<AvisoMomento> {
         'chaveIdempotencia': '$momentoId-${DateTime.now().millisecondsSinceEpoch}',
       });
       if (!mounted) return;
+      // As outras telas precisam saber agora: elas ficam montadas o app inteiro e não
+      // recarregariam sozinhas.
+      RegistroDeRespostas.instancia.marcar(momentoId, opcaoId);
       // Confirma antes de sumir. Responder e a faixa evaporar no mesmo instante deixa
       // a dúvida de se o toque valeu.
       setState(() => _confirmado = momentoId);
@@ -84,11 +88,15 @@ class _AvisoMomentoState extends State<AvisoMomento> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: widget.estado,
+      animation: Listenable.merge([widget.estado, RegistroDeRespostas.instancia]),
       builder: (context, _) {
         final m = widget.estado.momento;
         final id = m?['id']?.toString();
-        final visivel = m != null && id != null && !_resolvidos.contains(id);
+        // Também some quando a pessoa respondeu pelo cartão, em outra aba.
+        final visivel = m != null &&
+            id != null &&
+            !_resolvidos.contains(id) &&
+            !RegistroDeRespostas.instancia.respondeu(id);
 
         return AnimatedSize(
           duration: const Duration(milliseconds: 260),

@@ -3,6 +3,7 @@ import 'dart:ui' show FontFeature;
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../api.dart';
+import '../estado_respostas.dart';
 import '../tema.dart';
 import 'pulso.dart';
 
@@ -39,6 +40,16 @@ class _CartaoMomentoState extends State<CartaoMomento> {
     super.initState();
     _tick();
     _relogio = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+    // A resposta pode ter saído da faixa, em outra aba. Esta tela fica montada o app
+    // inteiro e não recarregaria sozinha — o registro avisa.
+    RegistroDeRespostas.instancia.addListener(_registroMudou);
+    _conferirSeJaRespondi();
+  }
+
+  void _registroMudou() {
+    final id = widget.momento['id']?.toString();
+    if (_resultado != null || !RegistroDeRespostas.instancia.respondeu(id)) return;
+    // Já respondeu em outro lugar: busca o resultado para fechar o ciclo aqui também.
     _conferirSeJaRespondi();
   }
 
@@ -61,6 +72,7 @@ class _CartaoMomentoState extends State<CartaoMomento> {
     try {
       final r = await Api.obter('/momentos/$id/resultado');
       if (!mounted || r['respondi'] != true) return;
+      RegistroDeRespostas.instancia.marcarVindoDoServidor(id, r['minhaOpcaoId']?.toString());
       setState(() {
         _escolhida = r['minhaOpcaoId']?.toString();
         _resultado = r;
@@ -81,6 +93,7 @@ class _CartaoMomentoState extends State<CartaoMomento> {
   @override
   void dispose() {
     _relogio?.cancel();
+    RegistroDeRespostas.instancia.removeListener(_registroMudou);
     super.dispose();
   }
 
@@ -95,6 +108,7 @@ class _CartaoMomentoState extends State<CartaoMomento> {
         // que reenviar não vira voto duplicado.
         'chaveIdempotencia': '${widget.momento['id']}-${DateTime.now().millisecondsSinceEpoch}',
       });
+      RegistroDeRespostas.instancia.marcar(widget.momento['id'].toString(), opcaoId);
       setState(() {
         _resultado = r['resultado'] as Map<String, dynamic>?;
         _mensagem = r['mensagem']?.toString();
@@ -295,9 +309,19 @@ class _CartaoMomentoState extends State<CartaoMomento> {
           // objeto tocável sem virar um segundo cartão dentro do primeiro. A 9% ele
           // sumia no fundo; acima de 18% começa a competir com a pergunta, que é quem
           // tem que ganhar a tela.
+          //
+          // Ao escolher, o laranja entra translúcido com o contorno aceso — e não
+          // chapado. Laranja sólido num chip pequeno vira um bloco de tinta que salta
+          // fora de escala do resto da tela; a mesma cor a 18% com borda diz "foi esta"
+          // com a mesma clareza, e continua parecendo parte do cartão.
           decoration: BoxDecoration(
-            color: aceso ? BandFMColors.orange : Colors.white.withValues(alpha: .14),
+            color: aceso
+                ? BandFMColors.orange.withValues(alpha: .18)
+                : Colors.white.withValues(alpha: .14),
             borderRadius: BorderRadius.circular(BandFMRadii.pill),
+            border: aceso
+                ? Border.all(color: BandFMColors.orange.withValues(alpha: .85), width: 1.5)
+                : null,
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             if (emoji.isNotEmpty) ...[
@@ -308,9 +332,9 @@ class _CartaoMomentoState extends State<CartaoMomento> {
             // por leitor de tela.
             Text(
               o['rotulo']?.toString() ?? '',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14.5, fontWeight: FontWeight.w700, height: 1.1,
-                color: aceso ? BandFMColors.textOnBrand : Colors.white,
+                color: Colors.white,
               ),
             ),
           ]),
@@ -333,8 +357,13 @@ class _CartaoMomentoState extends State<CartaoMomento> {
           constraints: const BoxConstraints(minHeight: BandFMSpacing.minTouchTarget),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: aceso ? BandFMColors.orange : Colors.white.withValues(alpha: .14),
+            color: aceso
+                ? BandFMColors.orange.withValues(alpha: .18)
+                : Colors.white.withValues(alpha: .14),
             borderRadius: BorderRadius.circular(14),
+            border: aceso
+                ? Border.all(color: BandFMColors.orange.withValues(alpha: .85), width: 1.5)
+                : null,
           ),
           child: Row(children: [
             if (emoji.isNotEmpty) ...[
@@ -344,9 +373,9 @@ class _CartaoMomentoState extends State<CartaoMomento> {
             Expanded(
               child: Text(
                 o['rotulo']?.toString() ?? '',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14.5, fontWeight: FontWeight.w700, height: 1.25,
-                  color: aceso ? BandFMColors.textOnBrand : Colors.white,
+                  color: Colors.white,
                 ),
               ),
             ),

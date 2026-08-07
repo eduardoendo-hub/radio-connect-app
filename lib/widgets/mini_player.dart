@@ -11,21 +11,31 @@ import '../tema.dart';
 class EstadoPlayer extends ChangeNotifier {
   final _player = AudioPlayer();
   String? _url;
-  bool _tocando = false;
+  bool _fonteAberta = false;
   bool _carregando = false;
   String? _erro;
 
-  bool get tocando => _tocando;
+  /// Quem manda no botão é o player, não uma variável nossa.
+  ///
+  /// Antes havia um `_tocando` mantido à mão, que descrevia a intenção e não a
+  /// realidade: se o stream caísse, ou o navegador pausasse sozinho, o botão continuava
+  /// mostrando pause com o silêncio no ar.
+  bool get tocando => _player.playing;
   bool get carregando => _carregando;
   String? get erro => _erro;
   bool get fonteExterna => _url == null || _url!.isEmpty;
 
+  EstadoPlayer() {
+    // Qualquer mudança vinda do próprio player — buffer, pausa do sistema, fim de
+    // conexão — se reflete na tela na hora.
+    _player.playerStateStream.listen((_) => notifyListeners());
+  }
+
   void definirFonte(String? url) => _url = url;
 
   Future<void> alternar() async {
-    if (_tocando) {
+    if (_player.playing) {
       await _player.pause();
-      _tocando = false;
       notifyListeners();
       return;
     }
@@ -38,13 +48,30 @@ class EstadoPlayer extends ChangeNotifier {
         // resto do app: Momentos, chat e promoções seguem funcionando.
         _erro = 'A transmissão está indisponível no momento.';
       } else {
-        // O pré-roll entraria aqui, antes de abrir o stream — o player já sabe tocar
-        // um arquivo antes, então não precisa de SDK pesado.
-        await _player.setUrl(_url!);
+        if (!_fonteAberta) {
+          // `preload: false` é o detalhe que faz o rádio ao vivo tocar.
+          //
+          // `setUrl` resolve quando conhece a **duração** do áudio — e transmissão ao
+          // vivo não tem fim, então esse Future ficava pendurado para sempre. O
+          // resultado era o pior tipo de falha: nenhum erro, nenhum log, o botão
+          // preso em "carregando" e o silêncio.
+          //
+          // Sem pré-carga, a fonte é registrada na hora e quem puxa os bytes é o
+          // `play()`. O timeout é rede de segurança para o caso de o servidor da
+          // emissora não responder.
+          await _player
+              .setAudioSource(AudioSource.uri(Uri.parse(_url!)), preload: false)
+              .timeout(const Duration(seconds: 10));
+          _fonteAberta = true;
+        }
+        // O pré-roll entraria aqui, antes de soltar o play — o player já sabe tocar um
+        // arquivo antes, então não precisa de SDK pesado.
         await _player.play();
-        _tocando = true;
       }
     } catch (_) {
+      // Uma tentativa falha não pode deixar a fonte num meio-termo: a próxima
+      // tentativa reabre do zero.
+      _fonteAberta = false;
       _erro = 'Não conseguimos abrir a transmissão agora.';
     } finally {
       _carregando = false;
