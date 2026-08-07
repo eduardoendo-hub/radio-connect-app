@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../tema.dart';
 import '../widgets/comuns.dart';
+import '../widgets/escada_conexao.dart';
 
 /// 08 · Sua Rádio.
 ///
@@ -53,7 +54,16 @@ class TelaSuaRadio extends StatelessWidget {
         ]),
 
         const SizedBox(height: BandFMSpacing.x5),
-        _indiceConexao(),
+        // A escada substitui a barra solta: uma barra diz "quanto", a escada diz
+        // "onde você está e para onde isso vai" — que é o que o capítulo pede.
+        const EscadaConexao(
+          nivel: 3,
+          porque: [
+            'voltou em quatro dias desta semana',
+            'participou de três Momentos',
+            'conversou com a rádio',
+          ],
+        ),
 
         const SizedBox(height: BandFMSpacing.x3),
         Row(children: [
@@ -80,47 +90,6 @@ class TelaSuaRadio extends StatelessWidget {
       ],
     );
   }
-
-  /// O Índice em linguagem, com a barra como apoio — nunca o número sozinho.
-  Widget _indiceConexao() => Cartao(
-        fundo: const Color(0xFF1E1408),
-        borda: Border.all(color: BandFMColors.orange.withValues(alpha: .28)),
-        padding: const EdgeInsets.all(BandFMSpacing.x4),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const RotuloSecao('Sua conexão com a Band FM'),
-          const SizedBox(height: 10),
-          const Text('Muito forte',
-              style: TextStyle(
-                  fontSize: 26, fontWeight: FontWeight.w800,
-                  color: BandFMColors.orange, letterSpacing: -.5)),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: .82),
-              duration: const Duration(milliseconds: 900),
-              curve: Curves.easeOutCubic,
-              builder: (_, v, __) => Stack(children: [
-                Container(height: 12, color: BandFMColors.surfaceRaised),
-                FractionallySizedBox(
-                  widthFactor: v,
-                  child: Container(
-                    height: 12,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(colors: [Color(0xFFF6821F), Color(0xFFFFB05C)]),
-                    ),
-                  ),
-                ),
-              ]),
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Você ouve quase todo dia, participa dos Momentos e já entrou em 3 promoções.',
-            style: TextStyle(fontSize: 13.5, height: 1.45, color: BandFMColors.textSecondary),
-          ),
-        ]),
-      );
 
   Widget _numero(String valor, String rotulo) => Cartao(
         padding: const EdgeInsets.all(BandFMSpacing.x4),

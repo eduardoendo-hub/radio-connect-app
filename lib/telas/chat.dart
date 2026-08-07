@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -128,7 +129,7 @@ class _TelaChatState extends State<TelaChat> {
     return Column(children: [
       _cabecalho(),
       Expanded(
-        child: _PapelDePontos(
+        child: _PapelDeOndas(
           child: _carregando
               ? const Center(child: CircularProgressIndicator(color: BandFMColors.orange))
               : ListView(
@@ -337,29 +338,51 @@ class _TelaChatState extends State<TelaChat> {
       );
 }
 
-/// Papel de parede de pontos.
+/// O papel de parede do chat: ondas de rádio.
 ///
-/// `radial-gradient(rgba(255,255,255,.035) 1px, transparent 1px)` a cada 22 px —
-/// textura suficiente para os balões terem sobre o que flutuar, discreta o bastante
-/// para ninguém reparar. Desenhado, não empacotado como imagem.
-class _PapelDePontos extends StatelessWidget {
+/// Preto chapado atrás dos balões deixa a conversa flutuando no vazio. Os pontos que
+/// estavam aqui davam textura, mas eram textura de mensageiro genérico — não diziam
+/// nada sobre onde a pessoa está.
+///
+/// Estas ondas são o mesmo vocabulário do fundo do Studio: linhas paralelas que se
+/// aproximam e se afastam, como a modulação de um sinal. **Bem discretas de propósito**
+/// — a 3,5% de branco elas dão profundidade sem competir com uma única palavra do que
+/// está sendo dito. Se der para "ver o desenho", passou do ponto.
+///
+/// Desenhado em vetor, não empacotado como imagem: custa zero byte de download e fica
+/// nítido em qualquer densidade de tela.
+class _PapelDeOndas extends StatelessWidget {
   final Widget child;
-  const _PapelDePontos({required this.child});
+  const _PapelDeOndas({required this.child});
 
   @override
   Widget build(BuildContext context) =>
-      CustomPaint(painter: _PintorDePontos(), child: child);
+      CustomPaint(painter: _PintorDeOndas(), child: child);
 }
 
-class _PintorDePontos extends CustomPainter {
+class _PintorDeOndas extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final tinta = Paint()..color = Colors.white.withValues(alpha: .035);
-    const passo = 22.0;
-    for (double y = 0; y < size.height; y += passo) {
-      for (double x = 0; x < size.width; x += passo) {
-        canvas.drawCircle(Offset(x, y), 1, tinta);
+    final tinta = Paint()
+      ..color = Colors.white.withValues(alpha: .035)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+
+    const espaco = 26.0;      // distância entre as ondas em repouso
+    const amplitude = 9.0;    // altura da crista
+    const comprimento = 190.0; // comprimento de onda
+
+    for (double base = -amplitude; base < size.height + espaco; base += espaco) {
+      final caminho = Path();
+      for (double x = 0; x <= size.width; x += 4) {
+        // Duas senóides somadas, com períodos que não são múltiplos uma da outra: o
+        // padrão demora a se repetir e não vira papel de parede quadriculado.
+        final y = base +
+            amplitude * math.sin(x / comprimento * 2 * math.pi) +
+            amplitude * .45 * math.sin(x / (comprimento * .37) * 2 * math.pi);
+        x == 0 ? caminho.moveTo(x, y) : caminho.lineTo(x, y);
       }
+      canvas.drawPath(caminho, tinta);
     }
   }
 
