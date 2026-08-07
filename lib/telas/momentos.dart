@@ -322,33 +322,64 @@ class _TelaMomentosState extends State<TelaMomentos> {
             },
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(children: [
-            const Arte(icone: Symbols.campaign, tamanho: 44, gradiente: BandFMColors.momentGradient),
-            const SizedBox(width: 12),
+          padding: const EdgeInsets.all(13),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            // Ícone maior e na cor do formato: na lista o Fofocômetro precisa se
+            // distinguir de longe das enquetes, e a marca dele é a cor mais o tamanho.
+            Container(
+              width: 54, height: 54,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft, end: Alignment.bottomRight,
+                  colors: [Color(0xFFE8437B), Color(0xFF8E1D46)],
+                ),
+                borderRadius: BorderRadius.circular(BandFMRadii.md),
+              ),
+              child: const Icon(Symbols.campaign, fill: 1, size: 27, color: Colors.white),
+            ),
+            const SizedBox(width: 13),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('FOFOCÔMETRO',
-                    style: TextStyle(
-                        fontSize: 9, fontWeight: FontWeight.w800,
-                        letterSpacing: 1.3, color: BandFMColors.orange)),
-                const SizedBox(height: 4),
+                // O nome do formato ganha caixa própria, com fundo e borda.
+                //
+                // Solto, ele era só mais uma linha de texto colada no título — os dois
+                // liam como um bloco só. Numa etiqueta fechada ele vira selo: a pessoa
+                // reconhece o formato antes de ler a frase, que é o ponto.
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8437B).withValues(alpha: .16),
+                    borderRadius: BorderRadius.circular(BandFMRadii.pill),
+                    border: Border.all(color: const Color(0xFFE8437B).withValues(alpha: .38)),
+                  ),
+                  child: const Text('FOFOCÔMETRO',
+                      style: TextStyle(
+                          fontSize: 8.5, fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2, color: Color(0xFFE8437B))),
+                ),
+                const SizedBox(height: 7),
                 Text(m['titulo']?.toString() ?? '',
                     style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w700, height: 1.3)),
+                        fontSize: 14.5, fontWeight: FontWeight.w700, height: 1.3)),
                 if (!revelou) ...[
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 4),
                   const Text('Ainda não abriu',
+                      style: TextStyle(fontSize: 12.5, color: BandFMColors.textTertiary)),
+                ] else if (!aberta) ...[
+                  const SizedBox(height: 4),
+                  const Text('Toque para ler',
                       style: TextStyle(fontSize: 12.5, color: BandFMColors.textTertiary)),
                 ],
               ]),
             ),
-            if (revelou)
+            if (revelou) ...[
+              const SizedBox(width: 8),
               AnimatedRotation(
                 turns: aberta ? .5 : 0,
                 duration: const Duration(milliseconds: 180),
-                child: const Icon(Symbols.expand_more, size: 20, color: BandFMColors.textTertiary),
+                child: const Icon(Symbols.expand_more, size: 22, color: Color(0xFFE8437B)),
               ),
+            ],
           ]),
         ),
         if (aberta && revelacao != null)

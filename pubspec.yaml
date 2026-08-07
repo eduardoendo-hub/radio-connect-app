@@ -39,6 +39,9 @@ dependencies:
   shared_preferences: ^2.5.5
   just_audio: ^0.10.6
   material_symbols_icons: ^4.2960.0
+  # Só para o aviso do navegador no Fofocômetro. Some quando o app virar pacote nativo
+  # e o push assumir.
+  web: ^1.1.0
 
 dev_dependencies:
   flutter_test:
