@@ -5,6 +5,7 @@ import '../tema.dart';
 import '../widgets/pulso.dart';
 import '../widgets/comuns.dart';
 import '../widgets/cartao_momento.dart';
+import '../widgets/avatar_locutor.dart';
 
 /// 02 · 03 · 05 — O No Ar.
 ///
@@ -114,8 +115,9 @@ class TelaNoAr extends StatelessWidget {
   /// pelo nome. Mostrar só o titular apagaria justamente o que faz aquela manhã ser
   /// aquela manhã — por isso a equipe inteira aparece, com o rosto de cada um.
   ///
-  /// Enquanto as fotos oficiais não chegam, o avatar é a inicial sobre o laranja da
-  /// casa. É honesto: não finge uma foto que não temos, e não deixa buraco na tela.
+  /// Enquanto as fotos oficiais não chegam, cada um ganha um avatar ilustrado —
+  /// determinístico, para que "o roxo é o Robson" vire reconhecimento de verdade.
+  /// Ver [AvatarLocutor].
   Widget _equipe(Object? bruto, Map<String, dynamic> titular) {
     final lista = (bruto as List?)?.cast<Map<String, dynamic>>() ?? [titular];
     final nomes = lista.map((l) => l['nome']?.toString() ?? '').where((n) => n.isNotEmpty).toList();
@@ -128,21 +130,8 @@ class TelaNoAr extends StatelessWidget {
         : '${nomes.sublist(0, nomes.length - 1).join(', ')} e ${nomes.last}';
 
     return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-      // Os avatares se sobrepõem levemente: lê como equipe, não como lista.
-      SizedBox(
-        height: 30,
-        width: 30 + (lista.length - 1) * 21,
-        child: Stack(
-          children: List.generate(lista.length, (i) {
-            final l = lista[i];
-            return Positioned(
-              left: i * 21,
-              child: _avatarLocutor(l['nome']?.toString() ?? '', l['imagemUrl']?.toString()),
-            );
-          }),
-        ),
-      ),
-      const SizedBox(width: 10),
+      EquipeNoAr(locutores: lista, tamanho: 32),
+      const SizedBox(width: 11),
       Expanded(
         child: Text('com $texto',
             maxLines: 2, overflow: TextOverflow.ellipsis,
@@ -152,31 +141,6 @@ class TelaNoAr extends StatelessWidget {
       ),
     ]);
   }
-
-  Widget _avatarLocutor(String nome, String? imagemUrl) {
-    final inicial = nome.trim().isEmpty ? '?' : nome.trim().characters.first.toUpperCase();
-    return Container(
-      width: 30, height: 30,
-      decoration: BoxDecoration(
-        gradient: imagemUrl == null ? BandFMColors.momentGradient : null,
-        shape: BoxShape.circle,
-        // O anel da cor do fundo é o que faz a sobreposição funcionar: sem ele os
-        // rostos encostam e viram uma mancha.
-        border: Border.all(color: BandFMColors.bg, width: 2),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: imagemUrl != null
-          ? Image.network(imagemUrl, fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _inicial(inicial))
-          : _inicial(inicial),
-    );
-  }
-
-  Widget _inicial(String letra) => Center(
-        child: Text(letra,
-            style: const TextStyle(
-                fontSize: 12.5, fontWeight: FontWeight.w800, color: Colors.white)),
-      );
 
   Widget _cabecalho() => Row(
         children: [
