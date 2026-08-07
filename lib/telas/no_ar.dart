@@ -64,10 +64,8 @@ class TelaNoAr extends StatelessWidget {
                       fontSize: 30, fontWeight: FontWeight.w800, height: 1.1, letterSpacing: -.7),
                 ),
                 if (locutor != null) ...[
-                  const SizedBox(height: 5),
-                  Text('com ${locutor['nome']}',
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w500, color: BandFMColors.textSecondary)),
+                  const SizedBox(height: 8),
+                  _equipe(estado.estado?['equipe'], locutor),
                 ],
 
                 const SizedBox(height: 12),
@@ -109,6 +107,76 @@ class TelaNoAr extends StatelessWidget {
       },
     );
   }
+
+  /// Quem está no microfone agora.
+  ///
+  /// Rádio quase nunca é uma voz só, e o ouvinte reconhece as três pessoas da manhã
+  /// pelo nome. Mostrar só o titular apagaria justamente o que faz aquela manhã ser
+  /// aquela manhã — por isso a equipe inteira aparece, com o rosto de cada um.
+  ///
+  /// Enquanto as fotos oficiais não chegam, o avatar é a inicial sobre o laranja da
+  /// casa. É honesto: não finge uma foto que não temos, e não deixa buraco na tela.
+  Widget _equipe(Object? bruto, Map<String, dynamic> titular) {
+    final lista = (bruto as List?)?.cast<Map<String, dynamic>>() ?? [titular];
+    final nomes = lista.map((l) => l['nome']?.toString() ?? '').where((n) => n.isNotEmpty).toList();
+    if (nomes.isEmpty) return const SizedBox.shrink();
+
+    // "com Tadeu Correa, Emerson França e Pedro Luiz Ronco" — a vírgula até o
+    // penúltimo, "e" antes do último. É como se fala, não como se lista.
+    final texto = nomes.length == 1
+        ? nomes.first
+        : '${nomes.sublist(0, nomes.length - 1).join(', ')} e ${nomes.last}';
+
+    return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+      // Os avatares se sobrepõem levemente: lê como equipe, não como lista.
+      SizedBox(
+        height: 30,
+        width: 30 + (lista.length - 1) * 21,
+        child: Stack(
+          children: List.generate(lista.length, (i) {
+            final l = lista[i];
+            return Positioned(
+              left: i * 21,
+              child: _avatarLocutor(l['nome']?.toString() ?? '', l['imagemUrl']?.toString()),
+            );
+          }),
+        ),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Text('com $texto',
+            maxLines: 2, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+                fontSize: 14.5, fontWeight: FontWeight.w500,
+                height: 1.3, color: BandFMColors.textSecondary)),
+      ),
+    ]);
+  }
+
+  Widget _avatarLocutor(String nome, String? imagemUrl) {
+    final inicial = nome.trim().isEmpty ? '?' : nome.trim().characters.first.toUpperCase();
+    return Container(
+      width: 30, height: 30,
+      decoration: BoxDecoration(
+        gradient: imagemUrl == null ? BandFMColors.momentGradient : null,
+        shape: BoxShape.circle,
+        // O anel da cor do fundo é o que faz a sobreposição funcionar: sem ele os
+        // rostos encostam e viram uma mancha.
+        border: Border.all(color: BandFMColors.bg, width: 2),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: imagemUrl != null
+          ? Image.network(imagemUrl, fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _inicial(inicial))
+          : _inicial(inicial),
+    );
+  }
+
+  Widget _inicial(String letra) => Center(
+        child: Text(letra,
+            style: const TextStyle(
+                fontSize: 12.5, fontWeight: FontWeight.w800, color: Colors.white)),
+      );
 
   Widget _cabecalho() => Row(
         children: [
