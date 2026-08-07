@@ -143,12 +143,12 @@ class _CartaoFofocometroState extends State<CartaoFofocometro> {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+        padding: const EdgeInsets.fromLTRB(18, 15, 18, 15),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // A etiqueta é o nome do formato, com peso de selo.
           Row(children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: _magenta.withValues(alpha: .18),
                 borderRadius: BorderRadius.circular(BandFMRadii.pill),
@@ -159,35 +159,44 @@ class _CartaoFofocometroState extends State<CartaoFofocometro> {
                 SizedBox(width: 6),
                 Text('FOFOCÔMETRO',
                     style: TextStyle(
-                        fontSize: 9.5, fontWeight: FontWeight.w800,
-                        letterSpacing: 1.3, color: _magenta)),
+                        fontSize: 9, fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2, color: _magenta)),
               ]),
             ),
           ]),
-          const SizedBox(height: 15),
+          const SizedBox(height: 12),
 
           Text(widget.momento['titulo']?.toString() ?? '',
               style: const TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.w800,
-                  height: 1.18, letterSpacing: -.6, color: Colors.white)),
+                  fontSize: 21, fontWeight: FontWeight.w800,
+                  height: 1.2, letterSpacing: -.5, color: Colors.white)),
 
           if (!abriu) ...[
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             _contagem(),
             if (_opcoes.isNotEmpty) ...[
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
               _palpite(),
             ],
-            const SizedBox(height: 16),
-            _meAvise(),
           ] else ...[
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
             _aRevelacao(),
           ],
 
           if (_patrocinador != null) ...[
-            const SizedBox(height: 18),
+            const SizedBox(height: 13),
             _assinaturaDoPatrocinio(),
+          ],
+
+          // O aviso é a última coisa do cartão, e a menor.
+          //
+          // No meio da espera ele competia com o palpite, que é a ação principal
+          // enquanto o relógio corre. No rodapé ele continua ao alcance de quem procura
+          // e sai do caminho de quem não procura — que é o comportamento certo para uma
+          // opção, e não para um convite.
+          if (!abriu) ...[
+            const SizedBox(height: 12),
+            Center(child: _meAvise()),
           ],
         ]),
       ),
@@ -199,22 +208,37 @@ class _CartaoFofocometroState extends State<CartaoFofocometro> {
   /// Número solto não diz nada — "3:41" podia ser tempo de música, de promoção, de
   /// qualquer coisa. "Será revelado em" transforma o relógio em promessa, e é a
   /// promessa que segura.
-  Widget _contagem() => Center(
-        child: Column(children: [
-          const Text('SERÁ REVELADO EM',
-              style: TextStyle(
-                  fontSize: 10, fontWeight: FontWeight.w800,
-                  letterSpacing: 1.5, color: BandFMColors.textTertiary)),
-          const SizedBox(height: 10),
+  /// O relógio na horizontal, e não empilhado no meio do cartão.
+  ///
+  /// Centralizado e com corpo 46, ele ocupava um terço da altura e empurrava o palpite
+  /// e o patrocínio para fora da primeira tela — justamente as duas coisas que precisam
+  /// ser vistas durante a espera. Deitado, a mesma informação cabe numa linha: o rótulo
+  /// e o "daqui a X minutos" de um lado, o número do outro.
+  ///
+  /// O número continua sendo o maior elemento do bloco. Ele não precisava ser o maior
+  /// elemento da tela.
+  Widget _contagem() => Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('SERÁ REVELADO EM',
+                  style: TextStyle(
+                      fontSize: 9.5, fontWeight: FontWeight.w800,
+                      letterSpacing: 1.4, color: BandFMColors.textTertiary)),
+              const SizedBox(height: 3),
+              Text(_porExtenso(_falta),
+                  style: const TextStyle(
+                      fontSize: 12.5, color: BandFMColors.textSecondary)),
+            ]),
+          ),
+          const SizedBox(width: 12),
           Text(_formatado(_falta),
               style: const TextStyle(
-                  fontSize: 46, fontWeight: FontWeight.w800,
-                  height: 1, letterSpacing: -2, color: _magenta,
+                  fontSize: 32, fontWeight: FontWeight.w800,
+                  height: 1, letterSpacing: -1.2, color: _magenta,
                   fontFeatures: [FontFeature.tabularFigures()])),
-          const SizedBox(height: 8),
-          Text(_porExtenso(_falta),
-              style: const TextStyle(fontSize: 13, color: BandFMColors.textSecondary)),
-        ]),
+        ],
       );
 
   /// "O Fofocômetro é um oferecimento de X."
@@ -229,20 +253,20 @@ class _CartaoFofocometroState extends State<CartaoFofocometro> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: .05),
         borderRadius: BorderRadius.circular(BandFMRadii.md),
       ),
       child: Row(children: [
         const Expanded(
-          child: Text('O Fofocômetro é um oferecimento',
-              style: TextStyle(fontSize: 11.5, color: BandFMColors.textTertiary)),
+          child: Text('Um oferecimento',
+              style: TextStyle(fontSize: 10.5, color: BandFMColors.textTertiary)),
         ),
         const SizedBox(width: 12),
         if (logo != null && logo.isNotEmpty)
           ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 22, maxWidth: 110),
+            constraints: const BoxConstraints(maxHeight: 19, maxWidth: 94),
             child: Image.network(logo, fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => _nomeDoPatrocinador(p)),
           )
@@ -306,14 +330,12 @@ class _CartaoFofocometroState extends State<CartaoFofocometro> {
   /// não ter o botão.
   Widget _meAvise() {
     if (_avisar) {
-      return Row(children: [
-        const Icon(Symbols.notifications_active, fill: 1, size: 15, color: _magenta),
-        const SizedBox(width: 8),
+      return Row(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Symbols.notifications_active, fill: 1, size: 13, color: _magenta),
+        const SizedBox(width: 6),
         Text(
-          _permitido
-              ? 'Vamos te avisar quando abrir.'
-              : 'Deixe a aba aberta que a gente avisa aqui.',
-          style: const TextStyle(fontSize: 12.5, color: BandFMColors.textSecondary),
+          _permitido ? 'A gente te avisa quando abrir' : 'Deixe a aba aberta que avisamos aqui',
+          style: const TextStyle(fontSize: 11.5, color: BandFMColors.textTertiary),
         ),
       ]);
     }
@@ -322,20 +344,26 @@ class _CartaoFofocometroState extends State<CartaoFofocometro> {
       color: Colors.transparent,
       child: InkWell(
         onTap: _pedirAviso,
-        borderRadius: BorderRadius.circular(BandFMRadii.pill),
+        borderRadius: BorderRadius.circular(7),
+        // Canto reto, e não a pílula dos palpites.
+        //
+        // Forma diferente é o que separa "escolher uma opção" de "ligar um lembrete":
+        // com o mesmo formato, o dedo trata os quatro botões como a mesma família e o
+        // aviso vira um quarto palpite.
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: .08),
-            borderRadius: BorderRadius.circular(BandFMRadii.pill),
-            border: Border.all(color: Colors.white.withValues(alpha: .16)),
+            borderRadius: BorderRadius.circular(7),
+            border: Border.all(color: Colors.white.withValues(alpha: .18)),
           ),
-          child: const Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Symbols.notifications, size: 16, color: Colors.white),
-            SizedBox(width: 8),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Symbols.notifications, size: 13,
+                color: Colors.white.withValues(alpha: .62)),
+            const SizedBox(width: 6),
             Text('Me avisa quando abrir',
                 style: TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+                    fontSize: 11.5, fontWeight: FontWeight.w600,
+                    color: Colors.white.withValues(alpha: .62))),
           ]),
         ),
       ),
@@ -363,12 +391,12 @@ class _CartaoFofocometroState extends State<CartaoFofocometro> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(jaPalpitou ? 'Seu palpite está feito' : 'Enquanto isso, dá seu palpite',
           style: const TextStyle(
-              fontSize: 12.5, fontWeight: FontWeight.w700,
+              fontSize: 12, fontWeight: FontWeight.w700,
               color: BandFMColors.textSecondary)),
-      const SizedBox(height: 10),
+      const SizedBox(height: 8),
       Wrap(
-        spacing: 8,
-        runSpacing: 8,
+        spacing: 7,
+        runSpacing: 7,
         children: _opcoes.map((o) {
           final id = o['id']?.toString();
           final escolhido = jaPalpitou ? meu == id : _palpitando == id;
@@ -380,8 +408,8 @@ class _CartaoFofocometroState extends State<CartaoFofocometro> {
               child: Opacity(
                 opacity: jaPalpitou && !escolhido ? .4 : 1,
                 child: Container(
-                  constraints: const BoxConstraints(minHeight: BandFMSpacing.minTouchTarget),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  constraints: const BoxConstraints(minHeight: 38),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
                     color: escolhido
                         ? _magenta.withValues(alpha: .22)
@@ -396,7 +424,7 @@ class _CartaoFofocometroState extends State<CartaoFofocometro> {
                   ),
                   child: Text(o['rotulo']?.toString() ?? '',
                       style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                          fontSize: 13.5, fontWeight: FontWeight.w700, color: Colors.white)),
                 ),
               ),
             ),
