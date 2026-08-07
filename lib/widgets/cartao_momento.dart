@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:ui' show FontFeature;
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../api.dart';
 import '../tema.dart';
+import 'pulso.dart';
 
 /// 03 · O Momento no No Ar.
 ///
@@ -115,135 +117,149 @@ class _CartaoMomentoState extends State<CartaoMomento> {
     final opcoes = (m['opcoes'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
     final contexto = m['contexto']?.toString();
 
+    final fim = DateTime.tryParse(m['terminaEm']?.toString() ?? '');
+    final inicio = DateTime.tryParse(m['inicioEm']?.toString() ?? '');
+    // Fração do tempo já consumida, para a barra. Sem `inicioEm` a duração padrão de
+    // três minutos é boa o suficiente — a barra é orientação, não cronômetro oficial.
+    final duracao = (fim != null && inicio != null)
+        ? fim.difference(inicio)
+        : const Duration(minutes: 3);
+    final decorrido = duracao.inMilliseconds <= 0
+        ? 1.0
+        : 1 - (_restante.inMilliseconds / duracao.inMilliseconds).clamp(0.0, 1.0);
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: BandFMColors.momentGradient,
-        borderRadius: BorderRadius.circular(BandFMRadii.hero),
-        // Uma borda clara de um pixel: a aresta que pega a luz. É o que separa um
-        // objeto de um retângulo pintado.
-        border: Border.all(color: const Color(0x2EFFFFFF)),
-        boxShadow: [
-          // Duas sombras, como qualquer objeto real: o contato escuro logo abaixo…
-          const BoxShadow(
-            color: Color(0xB3000000),
-            blurRadius: 22,
-            offset: Offset(0, 9),
-            spreadRadius: -9,
-          ),
-          // …e o brilho da própria cor espalhado bem mais longe.
+        // Superfície escura sólida, sem borda colorida e sem gradiente.
+        //
+        // O bloco laranja inteiro pesava: a cor da marca ocupando um terço da tela
+        // vira parede, e as opções em cima dela ficavam num marrom sujo. A tentativa
+        // seguinte — fundo escuro com borda laranja — resolveu o contraste mas trouxe
+        // outro problema: moldura colorida em volta de conteúdo é linguagem de
+        // 2015. Spotify e TikTok não desenham molduras; separam por elevação e deixam
+        // a tipografia mandar.
+        //
+        // Aqui o Momento é dono da tela pelo tamanho da pergunta e pelo espaço em
+        // volta dela. O laranja fica onde rende: o rótulo, a opção escolhida e a barra
+        // do tempo. Três toques, não uma parede.
+        color: BandFMColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
           BoxShadow(
-            color: BandFMColors.orange.withValues(alpha: .42),
-            blurRadius: 52,
-            offset: const Offset(0, 22),
-            spreadRadius: -20,
+            color: Color(0x99000000),
+            blurRadius: 24, offset: Offset(0, 10), spreadRadius: -10,
           ),
         ],
       ),
-      child: Stack(children: [
-        // A luz vem de cima: um véu branco que morre no meio da altura.
-        Positioned.fill(
-          child: IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(BandFMRadii.hero),
-                gradient: const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0x24FFFFFF), Color(0x00FFFFFF)],
-                  stops: [0, .45],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Contexto e tempo na mesma linha: quem pergunta à esquerda, quanto
+                // resta à direita. O ícone de microfone dentro de um círculo escuro
+                // parecia um botão que não fazia nada — virou o pulso, que é estado.
+                Row(children: [
+                  const Pulso(tamanho: 7, ritmo: RitmoPulso.momentoAtivo),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      (contexto ?? 'A rádio quer saber').toUpperCase(),
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 10, fontWeight: FontWeight.w800,
+                        letterSpacing: 1.3, color: BandFMColors.orange,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    _restante.inSeconds > 0
+                        ? '${_restante.inMinutes}:${(_restante.inSeconds % 60).toString().padLeft(2, '0')}'
+                        : 'encerrando',
+                    style: const TextStyle(
+                      fontSize: 12.5, fontWeight: FontWeight.w700,
+                      color: BandFMColors.textTertiary, fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 16),
+
+                Text(
+                  m['titulo']?.toString() ?? '',
+                  style: const TextStyle(
+                    fontSize: 23, fontWeight: FontWeight.w800, height: 1.18,
+                    letterSpacing: -.5, color: Colors.white,
+                  ),
+                ),
+                if (m['texto'] != null) ...[
+                  const SizedBox(height: 7),
+                  Text(m['texto'].toString(),
+                      style: const TextStyle(
+                          fontSize: 13.5, color: BandFMColors.textSecondary, height: 1.4)),
+                ],
+
+                if (opcoes.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  // A reação é horizontal e compacta. Um "Amei / Gostei / Passa"
+                  // empilhado em três blocões vira formulário: pede leitura, decisão e
+                  // rolagem para uma resposta que devia custar meio segundo.
+                  //
+                  // Rótulo de música é outro caso — não cabe em pílula. Aí cada opção
+                  // ocupa a linha inteira, com o emoji ao lado do texto, nunca acima.
+                  if (_cabeEmPilula(opcoes))
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: opcoes.map((o) => _pilula(o)).toList(),
+                    )
+                  else
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: opcoes
+                          .map((o) => Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: _linhaLarga(o),
+                              ))
+                          .toList(),
+                    ),
+                ],
+
+                if (_erro != null) ...[
+                  const SizedBox(height: 12),
+                  Text(_erro!,
+                      style: const TextStyle(fontSize: 13, color: Color(0xFFFF9A95))),
+                ],
+              ],
+            ),
+          ),
+
+          // O tempo como barra, e não como "Restam 9min 37s" com ícone de cronômetro.
+          // Some do caminho e se lê de relance — que é tudo o que a informação precisa.
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(19),
+            ),
+            child: Stack(children: [
+              Container(height: 3, color: Colors.white.withValues(alpha: .08)),
+              FractionallySizedBox(
+                widthFactor: (1 - decorrido).clamp(0.0, 1.0),
+                child: Container(
+                  height: 3,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFFF6821F), Color(0xFFFFB05C)],
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ]),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(22),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-          // Contexto: quem está perguntando. Sem isso o Momento vira formulário.
-          Row(children: [
-            Container(
-              width: 30, height: 30,
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: .28),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Symbols.mic, size: 16, color: Colors.white),
-            ),
-            const SizedBox(width: 9),
-            Expanded(
-              child: Text(
-                contexto ?? 'A rádio quer saber',
-                style: const TextStyle(
-                  fontSize: 12.5, fontWeight: FontWeight.w700,
-                  color: Color(0xE6FFFFFF), letterSpacing: -.1,
-                ),
-              ),
-            ),
-          ]),
-          const SizedBox(height: 14),
-
-          Text(
-            m['titulo']?.toString() ?? '',
-            style: const TextStyle(
-              fontSize: 25, fontWeight: FontWeight.w800, height: 1.15,
-              letterSpacing: -.5, color: Colors.white,
-            ),
-          ),
-          if (m['texto'] != null) ...[
-            const SizedBox(height: 8),
-            Text(m['texto'].toString(),
-                style: const TextStyle(fontSize: 14, color: Color(0xCCFFFFFF), height: 1.4)),
-          ],
-
-          if (opcoes.isNotEmpty) ...[
-            const SizedBox(height: 18),
-            // A reação é horizontal e compacta. Um "Amei / Gostei / Passa" empilhado
-            // em três blocões vira formulário: pede leitura, decisão e rolagem para
-            // uma resposta que devia custar meio segundo.
-            //
-            // Rótulo de música é outro caso — não cabe em pílula. Aí cada opção ocupa
-            // a linha inteira, com o emoji ao lado do texto, nunca acima.
-            if (_cabeEmPilula(opcoes))
-              Wrap(
-                spacing: 9,
-                runSpacing: 9,
-                children: opcoes.map((o) => _pilula(o)).toList(),
-              )
-            else
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: opcoes
-                    .map((o) => Padding(
-                          padding: const EdgeInsets.only(bottom: 9),
-                          child: _linhaLarga(o),
-                        ))
-                    .toList(),
-              ),
-          ],
-
-          if (_erro != null) ...[
-            const SizedBox(height: 12),
-            Text(_erro!, style: const TextStyle(fontSize: 13, color: Colors.white)),
-          ],
-
-          const SizedBox(height: 16),
-          Row(children: [
-            const Icon(Symbols.timer, size: 15, color: Color(0xB3FFFFFF)),
-            const SizedBox(width: 6),
-            Text(
-              _restante.inSeconds > 0
-                  ? 'Restam ${_restante.inMinutes}min ${(_restante.inSeconds % 60).toString().padLeft(2, '0')}s'
-                  : 'Encerrando…',
-              style: const TextStyle(fontSize: 12.5, color: Color(0xB3FFFFFF), fontWeight: FontWeight.w600),
-            ),
-          ]),
-            ],
-          ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 
@@ -268,13 +284,14 @@ class _CartaoMomentoState extends State<CartaoMomento> {
         child: Container(
           constraints: const BoxConstraints(minHeight: BandFMSpacing.minTouchTarget),
           padding: EdgeInsets.fromLTRB(emoji.isEmpty ? 16 : 12, 10, 16, 10),
+          // Sobre a superfície escura, a opção acende em laranja quando escolhida e
+          // repousa num branco baixíssimo quando não. Antes era marrom sobre laranja:
+          // duas cores quentes brigando, e nenhuma das duas legível.
+          // Sem contorno em repouso: chip é superfície, não moldura. Ao escolher, o
+          // laranja preenche e o texto fica preto — o mesmo contraste do botão de play.
           decoration: BoxDecoration(
-            color: aceso ? Colors.white.withValues(alpha: .24) : Colors.black.withValues(alpha: .24),
+            color: aceso ? BandFMColors.orange : Colors.white.withValues(alpha: .09),
             borderRadius: BorderRadius.circular(BandFMRadii.pill),
-            border: Border.all(
-              color: aceso ? Colors.white : const Color(0x1FFFFFFF),
-              width: aceso ? 1.5 : 1,
-            ),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             if (emoji.isNotEmpty) ...[
@@ -285,8 +302,9 @@ class _CartaoMomentoState extends State<CartaoMomento> {
             // por leitor de tela.
             Text(
               o['rotulo']?.toString() ?? '',
-              style: const TextStyle(
-                fontSize: 14.5, fontWeight: FontWeight.w700, color: Colors.white, height: 1.1,
+              style: TextStyle(
+                fontSize: 14.5, fontWeight: FontWeight.w700, height: 1.1,
+                color: aceso ? BandFMColors.textOnBrand : Colors.white,
               ),
             ),
           ]),
@@ -309,12 +327,8 @@ class _CartaoMomentoState extends State<CartaoMomento> {
           constraints: const BoxConstraints(minHeight: BandFMSpacing.minTouchTarget),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: aceso ? Colors.white.withValues(alpha: .24) : Colors.black.withValues(alpha: .24),
-            borderRadius: BorderRadius.circular(BandFMRadii.lg),
-            border: Border.all(
-              color: aceso ? Colors.white : const Color(0x1FFFFFFF),
-              width: aceso ? 1.5 : 1,
-            ),
+            color: aceso ? BandFMColors.orange : Colors.white.withValues(alpha: .09),
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Row(children: [
             if (emoji.isNotEmpty) ...[
@@ -324,8 +338,9 @@ class _CartaoMomentoState extends State<CartaoMomento> {
             Expanded(
               child: Text(
                 o['rotulo']?.toString() ?? '',
-                style: const TextStyle(
-                  fontSize: 14.5, fontWeight: FontWeight.w700, color: Colors.white, height: 1.25,
+                style: TextStyle(
+                  fontSize: 14.5, fontWeight: FontWeight.w700, height: 1.25,
+                  color: aceso ? BandFMColors.textOnBrand : Colors.white,
                 ),
               ),
             ),
