@@ -208,13 +208,18 @@ class _TelaMomentosState extends State<TelaMomentos> {
                       child: Container(
                         constraints: const BoxConstraints(minHeight: BandFMSpacing.minTouchTarget),
                         padding: const EdgeInsets.symmetric(vertical: 12),
+                        // Mesmo contraste do cartão do No Ar: preenchimento a 20% de
+                        // branco e um contorno claro. Superfície sem aresta some no
+                        // cartão, por mais clara que seja.
                         decoration: BoxDecoration(
                           color: escolhida
-                              ? BandFMColors.orange.withValues(alpha: .16)
-                              : BandFMColors.surfaceRaised,
+                              ? BandFMColors.orange.withValues(alpha: .2)
+                              : Colors.white.withValues(alpha: .2),
                           borderRadius: BorderRadius.circular(BandFMRadii.md),
                           border: Border.all(
-                            color: escolhida ? BandFMColors.orange : Colors.transparent,
+                            color: escolhida
+                                ? BandFMColors.orange.withValues(alpha: .9)
+                                : Colors.white.withValues(alpha: .22),
                           ),
                         ),
                         child: Column(children: [

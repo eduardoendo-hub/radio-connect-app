@@ -26,3 +26,12 @@ Nomear em minúsculas, sem acento: `marcelo-cafe.webp`, `milena-barros.webp`.
     npm run foto -- "Marcelo Café" /locutores/marcelo-cafe.webp
 
 (no radio-connect-core, com DATABASE_URL apontando para o banco)
+
+## O script
+
+    /tmp/.venv-img/bin/python preparar-foto.py origem.png saida.webp CX CY LADO
+
+`CX CY` é o centro do recorte em pixels da imagem original e `LADO` o tamanho do
+quadrado. Ele gera o WebP 512×512 **e uma prévia já mascarada em círculo** — confira
+sempre na prévia, não no quadrado: é fácil aprovar um recorte que parece bom quadrado
+e descobrir na tela que o círculo cortou a testa.

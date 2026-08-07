@@ -304,11 +304,13 @@ class _CartaoMomentoState extends State<CartaoMomento> {
           // Sem contorno em repouso: chip é superfície, não moldura. Ao escolher, o
           // laranja preenche e o texto fica preto — o mesmo contraste do botão de play.
           //
-          // O branco a 14% é escolha calibrada, não gosto: sobre a superfície do cartão
-          // isso dá cerca de 2,4:1 de contraste — o suficiente para o chip se ler como
-          // objeto tocável sem virar um segundo cartão dentro do primeiro. A 9% ele
-          // sumia no fundo; acima de 18% começa a competir com a pergunta, que é quem
-          // tem que ganhar a tela.
+          // Contraste em duas frentes, e não só subindo o preenchimento.
+          //
+          // Passou de 9% para 14% e ainda lia baixo no aparelho — captura de tela mente
+          // sobre contraste, o julgamento vale é no vidro. Em vez de empurrar o branco
+          // para 25%, o que faria o chip virar um segundo cartão dentro do primeiro, o
+          // preenchimento vai a 20% e ganha um contorno claro. A borda define a forma
+          // sem somar peso à mancha — dá aresta em vez de volume.
           //
           // Ao escolher, o laranja entra translúcido com o contorno aceso — e não
           // chapado. Laranja sólido num chip pequeno vira um bloco de tinta que salta
@@ -316,12 +318,15 @@ class _CartaoMomentoState extends State<CartaoMomento> {
           // com a mesma clareza, e continua parecendo parte do cartão.
           decoration: BoxDecoration(
             color: aceso
-                ? BandFMColors.orange.withValues(alpha: .18)
-                : Colors.white.withValues(alpha: .14),
+                ? BandFMColors.orange.withValues(alpha: .2)
+                : Colors.white.withValues(alpha: .2),
             borderRadius: BorderRadius.circular(BandFMRadii.pill),
-            border: aceso
-                ? Border.all(color: BandFMColors.orange.withValues(alpha: .85), width: 1.5)
-                : null,
+            border: Border.all(
+              color: aceso
+                  ? BandFMColors.orange.withValues(alpha: .9)
+                  : Colors.white.withValues(alpha: .22),
+              width: aceso ? 1.5 : 1,
+            ),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             if (emoji.isNotEmpty) ...[
@@ -358,12 +363,15 @@ class _CartaoMomentoState extends State<CartaoMomento> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: aceso
-                ? BandFMColors.orange.withValues(alpha: .18)
-                : Colors.white.withValues(alpha: .14),
+                ? BandFMColors.orange.withValues(alpha: .2)
+                : Colors.white.withValues(alpha: .2),
             borderRadius: BorderRadius.circular(14),
-            border: aceso
-                ? Border.all(color: BandFMColors.orange.withValues(alpha: .85), width: 1.5)
-                : null,
+            border: Border.all(
+              color: aceso
+                  ? BandFMColors.orange.withValues(alpha: .9)
+                  : Colors.white.withValues(alpha: .22),
+              width: aceso ? 1.5 : 1,
+            ),
           ),
           child: Row(children: [
             if (emoji.isNotEmpty) ...[
