@@ -338,19 +338,24 @@ class _TelaChatState extends State<TelaChat> {
       );
 }
 
-/// O papel de parede do chat: ondas de rádio.
+/// O papel de parede do chat: um campo de ondas.
 ///
-/// Preto chapado atrás dos balões deixa a conversa flutuando no vazio. Os pontos que
-/// estavam aqui davam textura, mas eram textura de mensageiro genérico — não diziam
-/// nada sobre onde a pessoa está.
+/// Preto chapado atrás dos balões deixa a conversa flutuando no vazio. A primeira
+/// tentativa foram pontos — textura de mensageiro genérico, que não dizia nada sobre
+/// onde a pessoa está. A segunda foram ondas paralelas, iguais e igualmente espaçadas:
+/// resolveu o assunto e criou outro problema, porque linha uniforme repetida lê como
+/// pauta de caderno, não como sinal.
 ///
-/// Estas ondas são o mesmo vocabulário do fundo do Studio: linhas paralelas que se
-/// aproximam e se afastam, como a modulação de um sinal. **Bem discretas de propósito**
-/// — a 3,5% de branco elas dão profundidade sem competir com uma única palavra do que
-/// está sendo dito. Se der para "ver o desenho", passou do ponto.
+/// Aqui cada onda tem **amplitude, fase e período próprios**, e o espaçamento entre
+/// elas respira — aperta em algumas alturas, abre em outras. O volume nasce da
+/// densidade: onde as linhas se aproximam, elas também ficam mais fortes, do mesmo
+/// jeito que no fundo do Studio. É o que faz o campo parecer orgânico em vez de
+/// impresso.
 ///
-/// Desenhado em vetor, não empacotado como imagem: custa zero byte de download e fica
-/// nítido em qualquer densidade de tela.
+/// Continua discreto: o pico é 4% de branco. Se der para parar e "ler o desenho",
+/// passou do ponto — ele existe para o preto não ser um vazio, e mais nada.
+///
+/// Desenhado em vetor: custa zero byte de download e fica nítido em qualquer densidade.
 class _PapelDeOndas extends StatelessWidget {
   final Widget child;
   const _PapelDeOndas({required this.child});
@@ -363,26 +368,47 @@ class _PapelDeOndas extends StatelessWidget {
 class _PintorDeOndas extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final tinta = Paint()
-      ..color = Colors.white.withValues(alpha: .035)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+    // Ruído determinístico, escrito à mão: o mesmo desenho a cada abertura do app.
+    // Aleatório de verdade faria o fundo mudar a cada rolagem — e um papel de parede
+    // que se move sozinho é exatamente o tipo de coisa que a pessoa nota.
+    double embaralha(int i, double a, double b) {
+      final v = math.sin(i * 12.9898 + 78.233) * 43758.5453;
+      return a + (v - v.floor()) * (b - a);
+    }
 
-    const espaco = 26.0;      // distância entre as ondas em repouso
-    const amplitude = 9.0;    // altura da crista
-    const comprimento = 190.0; // comprimento de onda
+    var y = -20.0;
+    var i = 0;
+    while (y < size.height + 30) {
+      // O espaçamento oscila devagar ao longo da altura: em algumas faixas as ondas
+      // se juntam, em outras se abrem.
+      final aperto = math.sin(y / 260 * 2 * math.pi);
+      final espaco = 22.0 + aperto * 9.0;
 
-    for (double base = -amplitude; base < size.height + espaco; base += espaco) {
+      // Onde aperta, escurece menos — a densidade vira luz.
+      final forca = 0.026 + (1 - (aperto + 1) / 2) * 0.016;
+
+      final amplitude = embaralha(i, 5, 13);
+      final periodo = embaralha(i + 100, 130, 320);
+      final fase = embaralha(i + 200, 0, 2 * math.pi);
+      final inclinacao = embaralha(i + 300, -0.05, 0.05);
+
+      final tinta = Paint()
+        ..color = Colors.white.withValues(alpha: forca)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = embaralha(i + 400, 0.8, 1.5);
+
       final caminho = Path();
       for (double x = 0; x <= size.width; x += 4) {
-        // Duas senóides somadas, com períodos que não são múltiplos uma da outra: o
-        // padrão demora a se repetir e não vira papel de parede quadriculado.
-        final y = base +
-            amplitude * math.sin(x / comprimento * 2 * math.pi) +
-            amplitude * .45 * math.sin(x / (comprimento * .37) * 2 * math.pi);
-        x == 0 ? caminho.moveTo(x, y) : caminho.lineTo(x, y);
+        final onda = y +
+            x * inclinacao +
+            amplitude * math.sin(x / periodo * 2 * math.pi + fase) +
+            amplitude * .35 * math.sin(x / (periodo * .41) * 2 * math.pi + fase * 1.7);
+        x == 0 ? caminho.moveTo(x, onda) : caminho.lineTo(x, onda);
       }
       canvas.drawPath(caminho, tinta);
+
+      y += espaco;
+      i++;
     }
   }
 
