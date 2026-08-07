@@ -7,6 +7,7 @@ import '../estado_respostas.dart';
 import '../tema.dart';
 import '../widgets/comuns.dart';
 import '../widgets/pulso.dart';
+import '../widgets/cartao_fofocometro.dart';
 
 /// 06 · Momentos.
 ///
@@ -25,6 +26,10 @@ class _TelaMomentosState extends State<TelaMomentos> {
   bool _carregando = true;
   String? _respondendo;
   String? _ultimoAtivo;
+  /// Qual Fofocômetro está aberto. Um por vez: dois textos longos abertos ao mesmo
+  /// tempo transformam a lista num feed, que é justamente o que ela não é.
+  String? _fofocaAberta;
+  final _revelacoes = <String, Map<String, dynamic>>{};
 
   @override
   void initState() {
@@ -132,14 +137,23 @@ class _TelaMomentosState extends State<TelaMomentos> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -.5)),
           const SizedBox(height: BandFMSpacing.x4),
 
-          if (ativo.isNotEmpty) _cartaoAtivo(ativo) else _semAtivo(),
+          if (ativo.isNotEmpty)
+            // O Fofocômetro ativo aparece com o mesmo cartão do No Ar: o relógio é o
+            // produto, e ele não pode virar uma linha de lista enquanto corre.
+            (ativo['tipo'] == 'FOFOCOMETRO'
+                ? CartaoFofocometro(key: ValueKey(ativo['id']), momento: _paraCartao(ativo))
+                : _cartaoAtivo(ativo))
+          else
+            _semAtivo(),
 
           if (passados.isNotEmpty) ...[
             const SizedBox(height: BandFMSpacing.x5),
             const TituloBloco('Antes, hoje'),
             ...passados.map((m) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: _linhaPassado(m),
+                  child: m['tipo'] == 'FOFOCOMETRO'
+                      ? _linhaFofoca(m)
+                      : _linhaPassado(m),
                 )),
           ],
         ],
@@ -260,6 +274,104 @@ class _TelaMomentosState extends State<TelaMomentos> {
             ),
           ]),
         ],
+      ]),
+    );
+  }
+
+  /// A lista de Momentos e o Estado No Ar falam dialetos diferentes: um manda `fimEm`,
+  /// o outro `terminaEm`, e a fofoca vem em `config` num e em `fofoca` no outro. O
+  /// cartão só conhece o dialeto do No Ar — traduzir aqui é mais barato do que ensinar
+  /// os dois formatos a ele.
+  Map<String, dynamic> _paraCartao(Map<String, dynamic> m) => {
+        ...m,
+        'terminaEm': m['fimEm'],
+        'fofoca': m['config'] ?? m['fofoca'],
+      };
+
+  /// O Fofocômetro na lista: entra fechado e abre ao toque.
+  ///
+  /// Fechado por padrão porque a lista existe para varrer o que aconteceu — abrir tudo
+  /// de uma vez viraria um mural de texto. Quem quiser ler, toca.
+  Widget _linhaFofoca(Map<String, dynamic> m) {
+    final id = m['id']?.toString() ?? '';
+    final aberta = _fofocaAberta == id;
+    final revelacao = _revelacoes[id];
+    final cfg = (m['config'] as Map?)?.cast<String, dynamic>();
+    final revelou = DateTime.tryParse(cfg?['revelarEm']?.toString() ?? '')
+            ?.isBefore(DateTime.now()) ??
+        false;
+
+    return Cartao(
+      padding: EdgeInsets.zero,
+      aoTocar: !revelou
+          ? null
+          : () async {
+              setState(() => _fofocaAberta = aberta ? null : id);
+              if (!aberta && revelacao == null) {
+                try {
+                  final r = await Api.obter('/momentos/$id/revelacao');
+                  if (mounted) {
+                    setState(() => _revelacoes[id] =
+                        (r['revelacao'] as Map).cast<String, dynamic>());
+                  }
+                } catch (_) {
+                  // Sem revelação não abre nada — melhor do que um vazio sem explicação.
+                  if (mounted) setState(() => _fofocaAberta = null);
+                }
+              }
+            },
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(children: [
+            const Arte(icone: Symbols.campaign, tamanho: 44, gradiente: BandFMColors.momentGradient),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('FOFOCÔMETRO',
+                    style: TextStyle(
+                        fontSize: 9, fontWeight: FontWeight.w800,
+                        letterSpacing: 1.3, color: BandFMColors.orange)),
+                const SizedBox(height: 4),
+                Text(m['titulo']?.toString() ?? '',
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w700, height: 1.3)),
+                if (!revelou) ...[
+                  const SizedBox(height: 3),
+                  const Text('Ainda não abriu',
+                      style: TextStyle(fontSize: 12.5, color: BandFMColors.textTertiary)),
+                ],
+              ]),
+            ),
+            if (revelou)
+              AnimatedRotation(
+                turns: aberta ? .5 : 0,
+                duration: const Duration(milliseconds: 180),
+                child: const Icon(Symbols.expand_more, size: 20, color: BandFMColors.textTertiary),
+              ),
+          ]),
+        ),
+        if (aberta && revelacao != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(height: 1, color: BandFMColors.line),
+              const SizedBox(height: 12),
+              if ((revelacao['imagemUrl']?.toString() ?? '').isNotEmpty) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(BandFMRadii.md),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 10,
+                    child: Image.network(revelacao['imagemUrl'].toString(), fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                  ),
+                ),
+                const SizedBox(height: 11),
+              ],
+              Text(revelacao['texto']?.toString() ?? '',
+                  style: const TextStyle(fontSize: 14.5, height: 1.5)),
+            ]),
+          ),
       ]),
     );
   }

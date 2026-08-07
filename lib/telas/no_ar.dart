@@ -5,6 +5,7 @@ import '../tema.dart';
 import '../widgets/pulso.dart';
 import '../widgets/comuns.dart';
 import '../widgets/cartao_momento.dart';
+import '../widgets/cartao_fofocometro.dart';
 import '../widgets/avatar_locutor.dart';
 
 /// 02 · 03 · 05 — O No Ar.
@@ -75,11 +76,16 @@ class TelaNoAr extends StatelessWidget {
 
                 // 3º NÍVEL — participação. Quando existe, assume a área principal.
                 if (momento != null) ...[
-                  CartaoMomento(
-                    key: ValueKey(momento['id']),
-                    momento: momento,
-                    aoResponder: estado.atualizar,
-                  ),
+                  // O Fofocômetro não pede resposta, pede espera — outro cartão, outra
+                  // lógica. Os dois continuam sendo Momentos para o resto do sistema.
+                  if (momento['tipo'] == 'FOFOCOMETRO')
+                    CartaoFofocometro(key: ValueKey(momento['id']), momento: momento)
+                  else
+                    CartaoMomento(
+                      key: ValueKey(momento['id']),
+                      momento: momento,
+                      aoResponder: estado.atualizar,
+                    ),
                   const SizedBox(height: BandFMSpacing.x3),
                 ] else if (promocao != null) ...[
                   _cartaoPromocao(promocao),
