@@ -289,8 +289,14 @@ class _CartaoMomentoState extends State<CartaoMomento> {
           // duas cores quentes brigando, e nenhuma das duas legível.
           // Sem contorno em repouso: chip é superfície, não moldura. Ao escolher, o
           // laranja preenche e o texto fica preto — o mesmo contraste do botão de play.
+          //
+          // O branco a 14% é escolha calibrada, não gosto: sobre a superfície do cartão
+          // isso dá cerca de 2,4:1 de contraste — o suficiente para o chip se ler como
+          // objeto tocável sem virar um segundo cartão dentro do primeiro. A 9% ele
+          // sumia no fundo; acima de 18% começa a competir com a pergunta, que é quem
+          // tem que ganhar a tela.
           decoration: BoxDecoration(
-            color: aceso ? BandFMColors.orange : Colors.white.withValues(alpha: .09),
+            color: aceso ? BandFMColors.orange : Colors.white.withValues(alpha: .14),
             borderRadius: BorderRadius.circular(BandFMRadii.pill),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -327,7 +333,7 @@ class _CartaoMomentoState extends State<CartaoMomento> {
           constraints: const BoxConstraints(minHeight: BandFMSpacing.minTouchTarget),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: aceso ? BandFMColors.orange : Colors.white.withValues(alpha: .09),
+            color: aceso ? BandFMColors.orange : Colors.white.withValues(alpha: .14),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Row(children: [
