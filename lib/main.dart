@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'api.dart';
 import 'estado_no_ar.dart';
+import 'estado_respostas.dart';
 import 'tema.dart';
 import 'telas/entrada.dart';
 import 'telas/no_ar.dart';
@@ -116,14 +117,18 @@ class _CascaState extends State<Casca> {
       backgroundColor: BandFMColors.bg,
       body: SafeArea(bottom: false, child: IndexedStack(index: _aba, children: telas)),
       bottomNavigationBar: AnimatedBuilder(
-        animation: _noAr,
+        // O ponto de Momentos some quando a pessoa responde em qualquer lugar.
+        animation: Listenable.merge([_noAr, RegistroDeRespostas.instancia]),
         builder: (context, _) => Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // O aviso de Momento fica acima do mini-player e some sozinho. Na aba No Ar
-            // não aparece: lá o Momento já é o assunto principal da tela, e anunciar o
-            // que está bem na frente da pessoa é ruído.
-            if (_aba != 0)
+            // O aviso fica acima do mini-player e some sozinho. Não aparece em No Ar
+            // nem em Momentos: nas duas o cartão do Momento já está na tela, e
+            // anunciar o que está bem na frente da pessoa é ruído — pior, com o cartão
+            // e a faixa juntos a mesma pergunta aparece duas vezes, com dois conjuntos
+            // de botões. Sobram Chat e Sua Rádio, que é exatamente onde o Momento
+            // passaria despercebido.
+            if (_aba >= 2)
               AvisoMomento(estado: _noAr, aoAbrir: () => setState(() => _aba = 1)),
             // O mini-player fica ACIMA da tab bar e acompanha todas as abas.
             MiniPlayer(
@@ -166,10 +171,30 @@ class _CascaState extends State<Casca> {
                   onTap: () => setState(() => _aba = i),
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                     // FILL 0 quando inativo, FILL 1 quando ativo — regra do design system.
-                    Icon(item.$1,
-                        fill: ativo ? 1 : 0,
-                        size: 23,
-                        color: ativo ? BandFMColors.orange : BandFMColors.textTertiary),
+                    Stack(clipBehavior: Clip.none, children: [
+                      Icon(item.$1,
+                          fill: ativo ? 1 : 0,
+                          size: 23,
+                          color: ativo ? BandFMColors.orange : BandFMColors.textTertiary),
+                      // O ponto em Momentos é a última linha de defesa: quem está no No
+                      // Ar — onde a faixa não aparece — continua sabendo que há algo
+                      // acontecendo, e quem já respondeu para de ser chamado.
+                      if (i == 1 &&
+                          _noAr.momento != null &&
+                          !RegistroDeRespostas.instancia
+                              .respondeu(_noAr.momento?['id']?.toString()))
+                        Positioned(
+                          right: -3, top: -2,
+                          child: Container(
+                            width: 9, height: 9,
+                            decoration: BoxDecoration(
+                              color: BandFMColors.orange,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: BandFMColors.bg, width: 1.5),
+                            ),
+                          ),
+                        ),
+                    ]),
                     const SizedBox(height: 3),
                     Text(item.$2,
                         style: TextStyle(

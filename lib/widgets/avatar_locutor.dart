@@ -84,6 +84,16 @@ class AvatarLocutor extends StatelessWidget {
           ? Image.network(
               imagemUrl!,
               fit: BoxFit.cover,
+              // O recorte puxa para cima, não para o centro geométrico.
+              //
+              // Retrato tem o rosto no terço superior; um círculo centrado na imagem
+              // corta a testa e sobra ombro. `-0.25` sobe o enquadramento o suficiente
+              // para o rosto ficar no meio do círculo, que é onde o olho procura.
+              alignment: const Alignment(0, -0.25),
+              // Enquanto a foto não chega, a silhueta ocupa o lugar — e não um quadrado
+              // cinza piscando.
+              loadingBuilder: (_, filho, progresso) =>
+                  progresso == null ? filho : const _Silhueta(),
               errorBuilder: (_, __, ___) => const _Silhueta(),
             )
           : const _Silhueta(),

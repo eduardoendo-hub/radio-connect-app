@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../api.dart';
@@ -118,21 +120,44 @@ class _AvisoMomentoState extends State<AvisoMomento> {
         opcoes.length <= 3 &&
         opcoes.every((o) => (o['rotulo']?.toString() ?? '').length <= 12);
 
+    // Vidro, não bloco.
+    //
+    // O laranja chapado tapava a tela por trás e brigava com o cartão da própria aba.
+    // Translúcido com desfoque, a faixa flutua **sobre** o conteúdo em vez de cobri-lo:
+    // a pessoa continua vendo onde estava, e a interrupção fica visualmente menor do
+    // que a informação que ela carrega.
     return Container(
       margin: const EdgeInsets.fromLTRB(10, 0, 10, 6),
       decoration: BoxDecoration(
-        gradient: BandFMColors.momentGradient,
         borderRadius: BorderRadius.circular(BandFMRadii.card),
-        border: Border.all(color: const Color(0x2EFFFFFF)),
         boxShadow: [
-          const BoxShadow(color: Color(0x99000000), blurRadius: 18, offset: Offset(0, 7), spreadRadius: -7),
+          const BoxShadow(color: Color(0x8C000000), blurRadius: 20, offset: Offset(0, 8), spreadRadius: -8),
           BoxShadow(
-            color: BandFMColors.orange.withValues(alpha: .35),
-            blurRadius: 34, offset: const Offset(0, 12), spreadRadius: -14,
+            color: BandFMColors.orange.withValues(alpha: .22),
+            blurRadius: 30, offset: const Offset(0, 10), spreadRadius: -14,
           ),
         ],
       ),
-      child: Material(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(BandFMRadii.card),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              // A cor da marca continua identificando o que é, mas deixando passar o
+              // que está atrás.
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  BandFMColors.orange.withValues(alpha: .62),
+                  const Color(0xFFB35708).withValues(alpha: .58),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(BandFMRadii.card),
+              border: Border.all(color: Colors.white.withValues(alpha: .16)),
+            ),
+            child: Material(
         color: Colors.transparent,
         child: confirmado
             ? const Padding(
@@ -212,11 +237,13 @@ class _AvisoMomentoState extends State<AvisoMomento> {
                                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
                                 decoration: BoxDecoration(
                                   color: aceso
-                                      ? Colors.white.withValues(alpha: .3)
-                                      : Colors.black.withValues(alpha: .26),
+                                      ? Colors.white.withValues(alpha: .34)
+                                      : Colors.black.withValues(alpha: .3),
                                   borderRadius: BorderRadius.circular(BandFMRadii.pill),
                                   border: Border.all(
-                                    color: aceso ? Colors.white : const Color(0x1FFFFFFF),
+                                    color: aceso
+                                        ? Colors.white
+                                        : Colors.white.withValues(alpha: .18),
                                   ),
                                 ),
                                 child: Row(
@@ -244,6 +271,9 @@ class _AvisoMomentoState extends State<AvisoMomento> {
                     ),
                   ),
               ]),
+            ),
+          ),
+        ),
       ),
     );
   }
