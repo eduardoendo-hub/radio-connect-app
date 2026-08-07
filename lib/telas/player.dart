@@ -104,11 +104,19 @@ class TelaPlayer extends StatelessWidget {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                // 62 % da arte — a proporção do handoff.
+                                // 62 % da arte, e **todo branco**: o handoff aplica
+                                // `brightness(0) invert(1)` no logo. Sobre o laranja,
+                                // o logo colorido briga com o próprio fundo — o verde
+                                // e o laranja da marca somem e sobra ruído. Em branco
+                                // sólido a arte vira uma peça só.
                                 SizedBox(
                                   width: lado * .62,
-                                  child: Image.asset('assets/logo-emissora.webp',
-                                      fit: BoxFit.contain),
+                                  child: ColorFiltered(
+                                    colorFilter: const ColorFilter.mode(
+                                        Colors.white, BlendMode.srcIn),
+                                    child: Image.asset('assets/logo-emissora.webp',
+                                        fit: BoxFit.contain),
+                                  ),
                                 ),
                                 const SizedBox(height: 14),
                                 Container(
