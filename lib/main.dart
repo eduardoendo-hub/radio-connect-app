@@ -12,6 +12,7 @@ import 'telas/chat.dart';
 import 'telas/sua_radio.dart';
 import 'telas/player.dart';
 import 'widgets/mini_player.dart';
+import 'widgets/aviso_momento.dart';
 
 /// O aplicativo do ouvinte.
 ///
@@ -119,6 +120,11 @@ class _CascaState extends State<Casca> {
         builder: (context, _) => Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // O aviso de Momento fica acima do mini-player e some sozinho. Na aba No Ar
+            // não aparece: lá o Momento já é o assunto principal da tela, e anunciar o
+            // que está bem na frente da pessoa é ruído.
+            if (_aba != 0)
+              AvisoMomento(estado: _noAr, aoAbrir: () => setState(() => _aba = 1)),
             // O mini-player fica ACIMA da tab bar e acompanha todas as abas.
             MiniPlayer(
               estado: _player,
