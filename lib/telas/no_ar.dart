@@ -178,71 +178,71 @@ class TelaNoAr extends StatelessWidget {
 
   /// 05 · Estado "Promoção": ela ocupa a área principal.
   /// Promoções não são aba — vivem no No Ar, em Momentos e em Sua Rádio.
-  /// A faixa de arte encolheu e o título desceu de corpo 22 para 17,5. Um bloco de
-  /// 120 px de laranja chapado com um ícone perdido no meio e um título de manchete
-  /// fazia a promoção gritar mais alto que o Momento no ar — que é o coração da tela.
-  /// Aqui ela convida; quem grita é a interação do instante.
+  /// A promoção deixou de ser um pôster e virou uma linha.
+  ///
+  /// A faixa de laranja atravessada no topo, com um ícone perdido no meio e um título
+  /// de manchete embaixo, fazia a promoção gritar mais alto que o Momento no ar — que
+  /// é o coração desta tela. Aqui ela cabe em três linhas ao lado de uma miniatura, e
+  /// nenhuma informação se perdeu: o rótulo, o prêmio, como o resultado sai e a ação.
+  ///
+  /// A ação é uma pílula, não um botão de largura inteira. Botão gordo ocupando a
+  /// largura da tela é o vocabulário de formulário; aqui é convite.
   Widget _cartaoPromocao(Map<String, dynamic> p) => Cartao(
-        padding: EdgeInsets.zero,
-        borda: Border.all(color: BandFMColors.orange.withValues(alpha: .3)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // A faixa não é ilustração, é assinatura: o suficiente para dar cor e dizer
-          // "promoção", sem ocupar meio cartão.
+        padding: const EdgeInsets.all(13),
+        borda: Border.all(color: BandFMColors.orange.withValues(alpha: .26)),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // A arte vira miniatura: cor e ícone bastam para dizer "promoção".
           Container(
-            height: 74,
-            decoration: const BoxDecoration(
+            width: 52, height: 52,
+            decoration: BoxDecoration(
               gradient: BandFMColors.momentGradient,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(BandFMRadii.card)),
+              borderRadius: BorderRadius.circular(BandFMRadii.md),
+              border: Border.all(color: const Color(0x24FFFFFF)),
             ),
-            child: Stack(children: [
-              // A mesma luz vinda de cima das outras superfícies.
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(BandFMRadii.card)),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0x26FFFFFF), Color(0x00FFFFFF)],
-                      stops: [0, .7],
+            child: const Icon(Symbols.local_activity, fill: 1, size: 24, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('PROMOÇÃO NO AR',
+                  style: TextStyle(
+                      fontSize: 9.5, fontWeight: FontWeight.w800,
+                      letterSpacing: 1.15, color: BandFMColors.orange)),
+              const SizedBox(height: 5),
+              Text(p['titulo']?.toString() ?? '',
+                  maxLines: 2, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 14.5, fontWeight: FontWeight.w700, height: 1.25, letterSpacing: -.2)),
+              const SizedBox(height: 3),
+              const Text('O resultado sai ao vivo, com o locutor.',
+                  style: TextStyle(fontSize: 12, height: 1.35, color: BandFMColors.textTertiary)),
+              const SizedBox(height: 11),
+              Row(children: [
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {},
+                    borderRadius: BorderRadius.circular(BandFMRadii.pill),
+                    child: Container(
+                      constraints: const BoxConstraints(minHeight: 34),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: BandFMColors.orange,
+                        borderRadius: BorderRadius.circular(BandFMRadii.pill),
+                      ),
+                      child: const Text('Quero participar',
+                          style: TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w700,
+                              color: BandFMColors.textOnBrand)),
                     ),
                   ),
                 ),
-              ),
-              const Center(
-                child: Icon(Symbols.local_activity, fill: 1, size: 30, color: Colors.white),
-              ),
-            ]),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(BandFMSpacing.x4),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const RotuloSecao('Promoção no ar'),
-              const SizedBox(height: 7),
-              Text(p['titulo']?.toString() ?? '',
-                  style: const TextStyle(
-                      fontSize: 17.5, fontWeight: FontWeight.w800, height: 1.2, letterSpacing: -.3)),
-              const SizedBox(height: 5),
-              const Text('O resultado sai ao vivo, com o locutor.',
-                  style: TextStyle(fontSize: 13, height: 1.4, color: BandFMColors.textSecondary)),
-              const SizedBox(height: 14),
-              Row(children: [
-                FilledButton(
-                  onPressed: () {},
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
-                  ),
-                  child: const Text('Quero participar'),
-                ),
                 const SizedBox(width: 12),
-                // A regra deixa de ser rodapé centralizado e vira o que é: um link
-                // discreto ao lado da ação.
-                Expanded(
-                  child: Text('Regras na próxima tela',
-                      style: const TextStyle(fontSize: 12, color: BandFMColors.textTertiary)),
-                ),
+                const Text('Regras',
+                    style: TextStyle(
+                        fontSize: 12, color: BandFMColors.textTertiary,
+                        decoration: TextDecoration.underline,
+                        decorationColor: BandFMColors.textTertiary)),
               ]),
             ]),
           ),
