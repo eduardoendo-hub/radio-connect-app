@@ -29,7 +29,16 @@ class EstadoPlayer extends ChangeNotifier {
   /// Antes havia um `_tocando` mantido à mão, que descrevia a intenção e não a
   /// realidade: se o stream caísse, ou o navegador pausasse sozinho, o botão continuava
   /// mostrando pause com o silêncio no ar.
-  bool get tocando => _player.playing;
+  bool get tocando => _player.playing || _preRoll != null;
+
+  /// Anúncio no ar, antes da rádio.
+  ///
+  /// Precisa ser um estado próprio, e não "carregando": durante o pré-roll **tem som
+  /// saindo**, e um botão girando enquanto o áudio toca diz à pessoa que o app travou.
+  /// O botão mostra pause — porque pausar é justamente o que ele faz — e a faixa
+  /// explica que a rádio entra em seguida.
+  bool get tocandoAnuncio => _preRoll != null;
+
   bool get carregando => _carregando;
   String? get erro => _erro;
   bool get fonteExterna => _url == null || _url!.isEmpty;
@@ -42,17 +51,28 @@ class EstadoPlayer extends ChangeNotifier {
 
   void definirFonte(String? url) => _url = url;
 
+  AudioPlayer? _playerDoAnuncio;
+
   Future<void> alternar() async {
+    // Pausar durante o anúncio para o anúncio — e não solta a rádio no lugar dele.
+    // Quem apertou pause quer silêncio, não a próxima faixa.
+    if (_preRoll != null) {
+      await _playerDoAnuncio?.pause();
+      _preRoll = null;
+      _restanteDoPreRoll = 0;
+      notifyListeners();
+      return;
+    }
     if (_player.playing) {
       await _player.pause();
       notifyListeners();
       return;
     }
-    _carregando = true;
     _erro = null;
-    notifyListeners();
     try {
       if (fonteExterna) {
+        _carregando = true;
+        notifyListeners();
         // A transmissão é da emissora, não nossa. Falhar aqui não pode derrubar o
         // resto do app: Momentos, chat e promoções seguem funcionando.
         _erro = 'A transmissão está indisponível no momento.';
@@ -62,8 +82,13 @@ class EstadoPlayer extends ChangeNotifier {
         // Regra que não se negocia: **se o anúncio falhar, a rádio entra assim mesmo**.
         // Publicidade que impede a pessoa de ouvir rádio destrói o produto para salvar
         // uma impressão. Por isso tudo aqui dentro é `try` sem `rethrow`.
+        //
+        // `_carregando` fica FORA daqui: durante o anúncio o estado é "tocando", não
+        // "carregando". O spinner só volta na abertura do stream, que é rápida.
         await _talvezPreRoll();
 
+        _carregando = true;
+        notifyListeners();
         if (!_fonteAberta) {
           // `preload: false` é o detalhe que faz o rádio ao vivo tocar.
           //
@@ -100,6 +125,7 @@ class EstadoPlayer extends ChangeNotifier {
   /// O servidor decide se existe anúncio para esta pessoa agora — teto de sessão e
   /// intervalo mínimo são conta dele. Aqui só se pergunta e se toca.
   Future<void> _talvezPreRoll() async {
+    Timer? conta;
     try {
       final r = await Api.obter('/anuncios?posicao=preroll');
       final a = r['anuncio'] as Map<String, dynamic>?;
@@ -110,6 +136,7 @@ class EstadoPlayer extends ChangeNotifier {
       notifyListeners();
 
       final anuncio = AudioPlayer();
+      _playerDoAnuncio = anuncio;
       try {
         await anuncio.setUrl(a['url'].toString()).timeout(const Duration(seconds: 6));
         unawaited(
@@ -119,7 +146,7 @@ class EstadoPlayer extends ChangeNotifier {
         unawaited(anuncio.play());
 
         // Conta para a tela enquanto o áudio corre.
-        final conta = Timer.periodic(const Duration(seconds: 1), (t) {
+        conta = Timer.periodic(const Duration(seconds: 1), (t) {
           _restanteDoPreRoll = (_restanteDoPreRoll - 1).clamp(0, 999);
           notifyListeners();
         });
@@ -129,7 +156,6 @@ class EstadoPlayer extends ChangeNotifier {
         await anuncio.playerStateStream
             .firstWhere((e) => e.processingState == ProcessingState.completed)
             .timeout(Duration(seconds: _restanteDoPreRoll + 3));
-        conta.cancel();
 
         // "Concluído" é o que separa impressão de impressão paga: o anúncio foi ouvido
         // até o fim, não apenas servido.
@@ -138,7 +164,9 @@ class EstadoPlayer extends ChangeNotifier {
               .catchError((_) => <String, dynamic>{}),
         );
       } finally {
+        conta?.cancel();
         await anuncio.dispose();
+        _playerDoAnuncio = null;
         _preRoll = null;
         _restanteDoPreRoll = 0;
         notifyListeners();
@@ -225,6 +253,8 @@ class MiniPlayer extends StatelessWidget {
                 onPressed: estado.carregando ? null : estado.alternar,
                 iconSize: 26,
                 visualDensity: VisualDensity.compact,
+                // Spinner só quando de fato não há som. Durante o anúncio tem áudio
+                // saindo, então o botão mostra pause.
                 icon: estado.carregando
                     ? const SizedBox(
                         width: 16, height: 16,
