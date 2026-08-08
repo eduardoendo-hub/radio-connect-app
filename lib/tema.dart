@@ -18,8 +18,17 @@ class BandFMColors {
   static const orange = Color(0xFFF6821F);      // cor da emissora (tenant)
   static const orangeStrong = Color(0xFFE56D0A);
   static const green = Color(0xFF3DB528);
-  static const live = Color(0xFFFF3B30);        // rótulo NO AR
-  static const liveDot = Color(0xFFFF1F14);     // ponto pulsante
+  // O vermelho do ao vivo é claro e levemente coral, não vermelho puro.
+  //
+  // A primeira versão usava #FF1F14 — saturação máxima, sem nenhum verde nem azul.
+  // Num fundo quase preto isso não lê como "acontecendo agora", lê como alarme: a cor
+  // grita mais alto que o próprio programa. Clarear e tirar um pouco da saturação
+  // mantém o sinal (ainda é o único vermelho do produto) e devolve a elegância.
+  //
+  // O ponto continua um passo mais forte que o rótulo, porque é ele que pulsa: o
+  // movimento chama o olho, então a cor não precisa fazer esse trabalho sozinha.
+  static const live = Color(0xFFFF6F63);        // rótulo NO AR
+  static const liveDot = Color(0xFFFF5A4E);     // ponto pulsante
 
   static const momentGradient = LinearGradient(
     begin: Alignment.topLeft, end: Alignment.bottomRight,

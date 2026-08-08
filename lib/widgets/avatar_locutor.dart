@@ -37,7 +37,7 @@ class AvatarLocutor extends StatelessWidget {
   /// desativada.
   static const _paletas = <List<Color>>[
     [Color(0xFFF6821F), Color(0xFF9A4A05)], // laranja da casa
-    [Color(0xFFE3271E), Color(0xFF8A1410)], // vermelho no ar
+    [Color(0xFFF0574D), Color(0xFFA62A22)], // vermelho no ar
     [Color(0xFF6E56CF), Color(0xFF3A2A78)], // roxo
     [Color(0xFF22A06B), Color(0xFF11543A)], // verde
     [Color(0xFF1E4FD8), Color(0xFF0F2A78)], // azul

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../estado_no_ar.dart';
 import '../tema.dart';
+import '../widgets/assinatura_patrocinio.dart';
 import '../widgets/pulso.dart';
 import '../widgets/comuns.dart';
 import '../widgets/cartao_momento.dart';
@@ -71,6 +72,25 @@ class TelaNoAr extends StatelessWidget {
                 if (locutor != null) ...[
                   const SizedBox(height: 8),
                   _equipe(estado.estado?['equipe'], locutor),
+                ],
+
+                // Uma assinatura por tela.
+                //
+                // Se o Momento no ar tem patrocinador, é ele quem assina — e o do
+                // programa se cala. Dois logos disputando a mesma tela não valem o
+                // dobro: não valem nada, porque ninguém olha para nenhum dos dois. O
+                // inventário específico e caro (minutos, hora marcada) ganha do
+                // permanente e barato (horas, todo dia), e o do programa volta sozinho
+                // assim que o Momento sai.
+                if (momento?['patrocinio'] == null) ...[
+                  Builder(builder: (_) {
+                    final assina = AssinaturaPatrocinio.talvez(
+                        estado.estado?['patrocinioDoPrograma'],
+                        discreta: true);
+                    if (assina == null) return const SizedBox.shrink();
+                    return Padding(
+                        padding: const EdgeInsets.only(top: 10), child: assina);
+                  }),
                 ],
 
                 const SizedBox(height: 12),

@@ -7,6 +7,7 @@ import '../api.dart';
 import '../avisos.dart';
 import '../estado_respostas.dart';
 import '../tema.dart';
+import 'assinatura_patrocinio.dart';
 
 /// Fofocômetro — o gancho, a espera e a revelação.
 ///
@@ -106,10 +107,12 @@ class _CartaoFofocometroState extends State<CartaoFofocometro> {
     }
   }
 
-  Map<String, dynamic>? get _patrocinador {
-    final f = widget.momento['fofoca'] as Map<String, dynamic>?;
-    return (f?['patrocinador'] as Map?)?.cast<String, dynamic>();
-  }
+  /// O patrocínio vem do campo comum a todos os Momentos, não de dentro da fofoca.
+  ///
+  /// Era `fofoca.patrocinador` — texto que o produtor digitava. Virou relação com a
+  /// campanha vendida, então a mesma leitura serve para qualquer formato e a impressão
+  /// entra no relatório da campanha em vez de morrer na tela.
+  Object? get _patrocinio => widget.momento['patrocinio'];
 
   @override
   Widget build(BuildContext context) {
@@ -183,7 +186,7 @@ class _CartaoFofocometroState extends State<CartaoFofocometro> {
             _aRevelacao(),
           ],
 
-          if (_patrocinador != null) ...[
+          if (_patrocinio != null) ...[
             const SizedBox(height: 13),
             _assinaturaDoPatrocinio(),
           ],
@@ -247,41 +250,9 @@ class _CartaoFofocometroState extends State<CartaoFofocometro> {
   /// dela e a pessoa está esperando de propósito. Depois de revelar continua ali, agora
   /// ligada à entrega. É o inventário mais valioso do produto — atenção com hora
   /// marcada vale mais que qualquer banner de rolagem.
-  Widget _assinaturaDoPatrocinio() {
-    final p = _patrocinador!;
-    final logo = p['logoUrl']?.toString();
+  Widget _assinaturaDoPatrocinio() =>
+      AssinaturaPatrocinio.talvez(_patrocinio) ?? const SizedBox.shrink();
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .05),
-        borderRadius: BorderRadius.circular(BandFMRadii.md),
-      ),
-      child: Row(children: [
-        const Expanded(
-          child: Text('Um oferecimento',
-              style: TextStyle(fontSize: 10.5, color: BandFMColors.textTertiary)),
-        ),
-        const SizedBox(width: 12),
-        if (logo != null && logo.isNotEmpty)
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 19, maxWidth: 94),
-            child: Image.network(logo, fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => _nomeDoPatrocinador(p)),
-          )
-        else
-          _nomeDoPatrocinador(p),
-      ]),
-    );
-  }
-
-  Widget _nomeDoPatrocinador(Map<String, dynamic> p) => Text(
-        p['nome']?.toString() ?? '',
-        style: const TextStyle(
-            fontSize: 14, fontWeight: FontWeight.w800,
-            letterSpacing: .2, color: Colors.white),
-      );
 
   Widget _aRevelacao() {
     final texto = _revelacao?['texto']?.toString() ?? '';

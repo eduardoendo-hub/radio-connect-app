@@ -5,6 +5,8 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../api.dart';
 import '../estado_respostas.dart';
 import '../tema.dart';
+import 'assinatura_patrocinio.dart';
+import 'identidade_quadro.dart';
 import 'pulso.dart';
 
 /// 03 · O Momento no No Ar.
@@ -131,6 +133,11 @@ class _CartaoMomentoState extends State<CartaoMomento> {
     final opcoes = (m['opcoes'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
     final contexto = m['contexto']?.toString();
 
+    // A identidade do quadro, quando ele tem uma. A maioria não tem — e é por isso que
+    // os poucos que têm são reconhecidos de longe.
+    final quadro = IdentidadeQuadro.de(m['identidade']);
+    final destaque = quadro?.cor ?? BandFMColors.orange;
+
     final fim = DateTime.tryParse(m['terminaEm']?.toString() ?? '');
     final inicio = DateTime.tryParse(m['inicioEm']?.toString() ?? '');
     // Fração do tempo já consumida, para a barra. Sem `inicioEm` a duração padrão de
@@ -178,15 +185,24 @@ class _CartaoMomentoState extends State<CartaoMomento> {
                 // resta à direita. O ícone de microfone dentro de um círculo escuro
                 // parecia um botão que não fazia nada — virou o pulso, que é estado.
                 Row(children: [
-                  const Pulso(tamanho: 7, ritmo: RitmoPulso.momentoAtivo),
-                  const SizedBox(width: 8),
+                  // Quadro com identidade mostra o próprio ícone; o resto mostra o
+                  // pulso. O ícone é o que a pessoa aprende a reconhecer antes de ler.
+                  if (quadro?.icone != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 7),
+                      child: Icon(quadro!.icone, size: 15, fill: 1, color: destaque),
+                    )
+                  else ...[
+                    const Pulso(tamanho: 7, ritmo: RitmoPulso.momentoAtivo),
+                    const SizedBox(width: 8),
+                  ],
                   Expanded(
                     child: Text(
                       (contexto ?? 'A rádio quer saber').toUpperCase(),
                       maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10, fontWeight: FontWeight.w800,
-                        letterSpacing: 1.3, color: BandFMColors.orange,
+                        letterSpacing: 1.3, color: destaque,
                       ),
                     ),
                   ),
@@ -247,6 +263,14 @@ class _CartaoMomentoState extends State<CartaoMomento> {
                   Text(_erro!,
                       style: const TextStyle(fontSize: 13, color: Color(0xFFFF9A95))),
                 ],
+
+                // Qualquer Momento pode ser patrocinado, não só o Fofocômetro. A
+                // assinatura fica no rodapé do cartão — abaixo da resposta, porque
+                // quem paga assina o Momento, não substitui a pergunta.
+                if (AssinaturaPatrocinio.talvez(m['patrocinio']) != null) ...[
+                  const SizedBox(height: 16),
+                  AssinaturaPatrocinio.talvez(m['patrocinio'])!,
+                ],
               ],
             ),
           ),
@@ -263,9 +287,9 @@ class _CartaoMomentoState extends State<CartaoMomento> {
                 widthFactor: (1 - decorrido).clamp(0.0, 1.0),
                 child: Container(
                   height: 3,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFFF6821F), Color(0xFFFFB05C)],
+                      colors: [destaque, destaque.withValues(alpha: .55)],
                     ),
                   ),
                 ),
