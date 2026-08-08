@@ -24,7 +24,7 @@ class TelaSuaRadio extends StatelessWidget {
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
-          BandFMSpacing.screenPadding, 12, BandFMSpacing.screenPadding, BandFMSpacing.x5),
+          BandFMSpacing.screenPadding, 16, BandFMSpacing.screenPadding, BandFMSpacing.x5),
       children: [
         Row(children: [
           Container(

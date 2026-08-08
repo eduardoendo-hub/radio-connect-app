@@ -131,7 +131,7 @@ class _TelaMomentosState extends State<TelaMomentos> {
       onRefresh: _carregar,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(
-            BandFMSpacing.screenPadding, 12, BandFMSpacing.screenPadding, BandFMSpacing.x5),
+            BandFMSpacing.screenPadding, 16, BandFMSpacing.screenPadding, BandFMSpacing.x5),
         children: [
           const Text('Momentos',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -.5)),

@@ -57,8 +57,10 @@ class TelaNoAr extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(
                   BandFMSpacing.screenPadding, 8, BandFMSpacing.screenPadding, BandFMSpacing.x5),
               children: [
-                _cabecalho(),
-                const SizedBox(height: BandFMSpacing.x5),
+                // O cabeçalho local saiu: logo e estado agora vivem na barra da casca,
+                // presente em todas as abas. Repetir aqui daria dois logos na mesma
+                // tela.
+                const SizedBox(height: BandFMSpacing.x4),
 
                 // 1º NÍVEL — presença
                 Text(
@@ -151,27 +153,6 @@ class TelaNoAr extends StatelessWidget {
       ),
     ]);
   }
-
-  Widget _cabecalho() => Row(
-        children: [
-          Image.asset('assets/logo-emissora.webp', height: 26),
-          const Spacer(),
-          if (estado.semRede)
-            const Row(children: [
-              Icon(Symbols.cloud_off, size: 14, color: BandFMColors.textTertiary),
-              SizedBox(width: 5),
-              Text('sem conexão', style: TextStyle(fontSize: 11.5, color: BandFMColors.textTertiary)),
-            ])
-          else
-            EtiquetaNoAr(
-              ritmo: estado.momento != null
-                  ? RitmoPulso.momentoAtivo
-                  : estado.aoVivo
-                      ? RitmoPulso.noAr
-                      : RitmoPulso.foraDoAr,
-            ),
-        ],
-      );
 
   /// "15.432 ouvintes vivendo este momento" — nunca "usuários online".
   /// A linguagem transforma métrica em pertencimento.

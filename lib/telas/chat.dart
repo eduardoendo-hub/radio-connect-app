@@ -171,37 +171,26 @@ class _TelaChatState extends State<TelaChat> {
         ),
       );
 
+  /// O cabeçalho da conversa, agora sem o nome da rádio.
+  ///
+  /// O nome subiu para a barra da casca, que está em todas as abas. Repetir "Band FM"
+  /// aqui daria a marca duas vezes na mesma tela, a poucos pixels de distância — e o
+  /// que esta linha precisa dizer não é com quem se fala (isso já está claro), e sim
+  /// **se tem alguém do outro lado agora**.
   Widget _cabecalho() => Container(
-        padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
         decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: BandFMColors.line)),
         ),
         child: Row(children: [
           Container(
-            width: 42, height: 42,
-            decoration: BoxDecoration(
-              gradient: BandFMColors.momentGradient,
-              borderRadius: BorderRadius.circular(21),
-            ),
-            child: const Icon(Symbols.radio, size: 21, color: Colors.white),
+            width: 7, height: 7,
+            decoration: const BoxDecoration(color: BandFMColors.green, shape: BoxShape.circle),
           ),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Band FM',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: -.2)),
-              const SizedBox(height: 2),
-              Row(children: [
-                Container(
-                  width: 6, height: 6,
-                  decoration: const BoxDecoration(color: BandFMColors.green, shape: BoxShape.circle),
-                ),
-                const SizedBox(width: 6),
-                const Text('A produção está respondendo',
-                    style: TextStyle(fontSize: 12, color: BandFMColors.green)),
-              ]),
-            ]),
-          ),
+          const SizedBox(width: 8),
+          const Text('A produção está respondendo',
+              style: TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w600, color: BandFMColors.green)),
         ]),
       );
 

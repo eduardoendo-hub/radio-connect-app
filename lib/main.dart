@@ -15,6 +15,7 @@ import 'telas/player.dart';
 import 'widgets/mini_player.dart';
 import 'widgets/aviso_momento.dart';
 import 'widgets/banner_anuncio.dart';
+import 'widgets/barra_da_radio.dart';
 
 /// O aplicativo do ouvinte.
 ///
@@ -116,7 +117,15 @@ class _CascaState extends State<Casca> {
 
     return Scaffold(
       backgroundColor: BandFMColors.bg,
-      body: SafeArea(bottom: false, child: IndexedStack(index: _aba, children: telas)),
+      // A barra fica FORA do IndexedStack: é da casca, não de nenhuma aba. Assim ela
+      // não é reconstruída a cada troca e o estado da rádio nunca pisca.
+      body: SafeArea(
+        bottom: false,
+        child: Column(children: [
+          BarraDaRadio(estado: _noAr),
+          Expanded(child: IndexedStack(index: _aba, children: telas)),
+        ]),
+      ),
       bottomNavigationBar: AnimatedBuilder(
         // O ponto de Momentos some quando a pessoa responde em qualquer lugar.
         animation: Listenable.merge([_noAr, _player, RegistroDeRespostas.instancia]),
