@@ -135,7 +135,16 @@ class TelaPlayer extends StatelessWidget {
                                     // parado. "Ao vivo" é estado, não rótulo — o que
                                     // convence de que a transmissão está acontecendo
                                     // agora é o batimento, não a palavra.
-                                    Pulso(tamanho: 9, ritmo: RitmoPulso.noAr),
+                                    //
+                                    // Ritmo próprio, mais rápido que os 2,4 s do
+                                    // resto do app: aqui o pulso é o único elemento
+                                    // vivo de uma tela grande e parada, e no meio de
+                                    // tanta área estática um batimento lento lê como
+                                    // imagem congelada.
+                                    Pulso(
+                                      tamanho: 9,
+                                      duracao: Duration(milliseconds: 1400),
+                                    ),
                                     SizedBox(width: 8),
                                     Text('AO VIVO',
                                         style: TextStyle(

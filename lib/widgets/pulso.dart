@@ -22,7 +22,20 @@ const _duracoes = {
 class Pulso extends StatefulWidget {
   final double tamanho;
   final RitmoPulso ritmo;
-  const Pulso({super.key, this.tamanho = 7, this.ritmo = RitmoPulso.noAr});
+
+  /// Sobrescreve a duração do ritmo.
+  ///
+  /// Existe para um caso só: o selo "AO VIVO" dentro da arte do player. Ali o pulso
+  /// não está reportando estado da plataforma — não há Momento nem fora-do-ar para
+  /// comunicar —, ele existe para dizer "a transmissão está acontecendo". Como é o
+  /// elemento vivo de uma tela grande e parada, precisa de um batimento mais presente
+  /// do que os 2,4 s que servem para um ponto de 7 px numa barra.
+  ///
+  /// Não use isto para variar ritmo por gosto: nas telas onde o pulso reporta estado, a
+  /// duração **é** a informação.
+  final Duration? duracao;
+
+  const Pulso({super.key, this.tamanho = 7, this.ritmo = RitmoPulso.noAr, this.duracao});
 
   @override
   State<Pulso> createState() => _PulsoState();
@@ -31,14 +44,14 @@ class Pulso extends StatefulWidget {
 class _PulsoState extends State<Pulso> with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: _duracoes[widget.ritmo],
+    duration: widget.duracao ?? _duracoes[widget.ritmo],
   )..repeat();
 
   @override
   void didUpdateWidget(Pulso anterior) {
     super.didUpdateWidget(anterior);
-    if (anterior.ritmo != widget.ritmo) {
-      _c.duration = _duracoes[widget.ritmo];
+    if (anterior.ritmo != widget.ritmo || anterior.duracao != widget.duracao) {
+      _c.duration = widget.duracao ?? _duracoes[widget.ritmo];
       _c
         ..reset()
         ..repeat();
