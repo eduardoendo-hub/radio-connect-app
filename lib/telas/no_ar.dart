@@ -7,6 +7,7 @@ import '../widgets/comuns.dart';
 import '../widgets/cartao_momento.dart';
 import '../widgets/cartao_fofocometro.dart';
 import '../widgets/avatar_locutor.dart';
+import '../widgets/banner_anuncio.dart';
 
 /// 02 · 03 · 05 — O No Ar.
 ///
@@ -105,8 +106,11 @@ class TelaNoAr extends StatelessWidget {
                 const SizedBox(height: 10),
 
                 // Inventário: espaço estrutural, reservado desde o primeiro desenho.
-                // Some quando há Momento — a interação tem prioridade absoluta.
-                if (momento == null) _slotBanner(),
+                //
+                // Some quando há Momento — a interação tem prioridade absoluta — e
+                // some também quando não há campanha para servir. O servidor decide as
+                // duas coisas; aqui só se pede.
+                if (momento == null) const BannerAnuncio(),
               ],
             ),
           ]),
@@ -287,18 +291,5 @@ class TelaNoAr extends StatelessWidget {
         ]),
       );
 
-  Widget _slotBanner() => Container(
-        height: 66,
-        decoration: BoxDecoration(
-          color: BandFMColors.surface,
-          borderRadius: BorderRadius.circular(BandFMRadii.md),
-          border: Border.all(color: BandFMColors.line),
-        ),
-        child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Symbols.ads_click, size: 16, color: BandFMColors.textTertiary),
-          SizedBox(width: 8),
-          Text('Banner contextual · patrocinado',
-              style: TextStyle(fontSize: 12.5, color: BandFMColors.textTertiary)),
-        ]),
-      );
+
 }

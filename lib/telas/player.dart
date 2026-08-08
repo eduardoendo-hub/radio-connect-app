@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../tema.dart';
 import '../widgets/mini_player.dart';
+import '../widgets/pulso.dart';
 
 /// 09 · Player expandido.
 ///
@@ -120,20 +121,22 @@ class TelaPlayer extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 14),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: .3),
+                                    // O fundo escurece um pouco mais que o handoff
+                                    // pedia: é o que permite o vermelho existir sobre o
+                                    // laranja. Sem essa base, a cor do "ao vivo" some
+                                    // dentro da própria arte.
+                                    color: Colors.black.withValues(alpha: .42),
                                     borderRadius: BorderRadius.circular(BandFMRadii.pill),
                                   ),
                                   child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                                    // Sobre o laranja o ponto é branco, não vermelho:
-                                    // o vermelho da marca some no fundo quente.
-                                    SizedBox(
-                                      width: 9, height: 9,
-                                      child: DecoratedBox(decoration: BoxDecoration(
-                                        color: Colors.white, shape: BoxShape.circle)),
-                                    ),
-                                    SizedBox(width: 7),
+                                    // O ponto pulsa em vermelho, e não fica branco e
+                                    // parado. "Ao vivo" é estado, não rótulo — o que
+                                    // convence de que a transmissão está acontecendo
+                                    // agora é o batimento, não a palavra.
+                                    Pulso(tamanho: 9, ritmo: RitmoPulso.noAr),
+                                    SizedBox(width: 8),
                                     Text('AO VIVO',
                                         style: TextStyle(
                                             fontSize: 11, fontWeight: FontWeight.w800,

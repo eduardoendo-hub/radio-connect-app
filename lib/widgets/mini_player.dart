@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import '../api.dart';
 import '../tema.dart';
 
 /// Estado do player, compartilhado entre o mini-player e o player expandido.
@@ -14,6 +17,12 @@ class EstadoPlayer extends ChangeNotifier {
   bool _fonteAberta = false;
   bool _carregando = false;
   String? _erro;
+
+  /// O anúncio tocando agora, se houver. A tela usa para mostrar a faixa de pré-roll.
+  Map<String, dynamic>? _preRoll;
+  int _restanteDoPreRoll = 0;
+  Map<String, dynamic>? get preRoll => _preRoll;
+  int get restanteDoPreRoll => _restanteDoPreRoll;
 
   /// Quem manda no botão é o player, não uma variável nossa.
   ///
@@ -48,6 +57,13 @@ class EstadoPlayer extends ChangeNotifier {
         // resto do app: Momentos, chat e promoções seguem funcionando.
         _erro = 'A transmissão está indisponível no momento.';
       } else {
+        // O pré-roll entra aqui, antes da rádio.
+        //
+        // Regra que não se negocia: **se o anúncio falhar, a rádio entra assim mesmo**.
+        // Publicidade que impede a pessoa de ouvir rádio destrói o produto para salvar
+        // uma impressão. Por isso tudo aqui dentro é `try` sem `rethrow`.
+        await _talvezPreRoll();
+
         if (!_fonteAberta) {
           // `preload: false` é o detalhe que faz o rádio ao vivo tocar.
           //
@@ -76,6 +92,61 @@ class EstadoPlayer extends ChangeNotifier {
     } finally {
       _carregando = false;
       notifyListeners();
+    }
+  }
+
+  /// Toca o pré-roll e só volta quando ele termina.
+  ///
+  /// O servidor decide se existe anúncio para esta pessoa agora — teto de sessão e
+  /// intervalo mínimo são conta dele. Aqui só se pergunta e se toca.
+  Future<void> _talvezPreRoll() async {
+    try {
+      final r = await Api.obter('/anuncios?posicao=preroll');
+      final a = r['anuncio'] as Map<String, dynamic>?;
+      if (a == null || a['url'] == null) return;
+
+      _preRoll = a;
+      _restanteDoPreRoll = (a['duracao'] as num?)?.toInt() ?? 10;
+      notifyListeners();
+
+      final anuncio = AudioPlayer();
+      try {
+        await anuncio.setUrl(a['url'].toString()).timeout(const Duration(seconds: 6));
+        unawaited(
+          Api.enviar('/anuncios/${a['impressaoId']}/confirmar', {'visivel': true})
+              .catchError((_) => <String, dynamic>{}),
+        );
+        unawaited(anuncio.play());
+
+        // Conta para a tela enquanto o áudio corre.
+        final conta = Timer.periodic(const Duration(seconds: 1), (t) {
+          _restanteDoPreRoll = (_restanteDoPreRoll - 1).clamp(0, 999);
+          notifyListeners();
+        });
+
+        // `completed` chega quando o arquivo acaba. Se nunca chegar — rede ruim,
+        // formato estranho —, o teto de duração + 3s solta a rádio de qualquer jeito.
+        await anuncio.playerStateStream
+            .firstWhere((e) => e.processingState == ProcessingState.completed)
+            .timeout(Duration(seconds: _restanteDoPreRoll + 3));
+        conta.cancel();
+
+        // "Concluído" é o que separa impressão de impressão paga: o anúncio foi ouvido
+        // até o fim, não apenas servido.
+        unawaited(
+          Api.enviar('/anuncios/${a['impressaoId']}/confirmar', {'concluido': true})
+              .catchError((_) => <String, dynamic>{}),
+        );
+      } finally {
+        await anuncio.dispose();
+        _preRoll = null;
+        _restanteDoPreRoll = 0;
+        notifyListeners();
+      }
+    } catch (_) {
+      // Falhou? A rádio entra do mesmo jeito.
+      _preRoll = null;
+      _restanteDoPreRoll = 0;
     }
   }
 

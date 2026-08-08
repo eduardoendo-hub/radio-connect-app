@@ -14,6 +14,7 @@ import 'telas/sua_radio.dart';
 import 'telas/player.dart';
 import 'widgets/mini_player.dart';
 import 'widgets/aviso_momento.dart';
+import 'widgets/banner_anuncio.dart';
 
 /// O aplicativo do ouvinte.
 ///
@@ -118,7 +119,7 @@ class _CascaState extends State<Casca> {
       body: SafeArea(bottom: false, child: IndexedStack(index: _aba, children: telas)),
       bottomNavigationBar: AnimatedBuilder(
         // O ponto de Momentos some quando a pessoa responde em qualquer lugar.
-        animation: Listenable.merge([_noAr, RegistroDeRespostas.instancia]),
+        animation: Listenable.merge([_noAr, _player, RegistroDeRespostas.instancia]),
         builder: (context, _) => Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -130,6 +131,16 @@ class _CascaState extends State<Casca> {
             // passaria despercebido.
             if (_aba >= 2)
               AvisoMomento(estado: _noAr, aoAbrir: () => setState(() => _aba = 1)),
+            // Enquanto o pré-roll toca, ele ocupa o lugar do aviso: a pessoa precisa
+            // entender por que a rádio ainda não entrou, senão parece travamento.
+            if (_player.preRoll != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
+                child: SobreposicaoPreRoll(
+                  anunciante: _player.preRoll?['anunciante']?.toString() ?? 'Publicidade',
+                  restante: _player.restanteDoPreRoll,
+                ),
+              ),
             // O mini-player fica ACIMA da tab bar e acompanha todas as abas.
             MiniPlayer(
               estado: _player,
