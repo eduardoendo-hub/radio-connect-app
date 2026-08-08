@@ -6,8 +6,12 @@ void main() {
     // Laranja Band FM — cor de marca do tenant.
     expect(BandFMColors.orange.toARGB32(), 0xFFF6821F);
     // O vermelho do NO AR é reservado: significa "acontecendo agora" e mais nada.
-    expect(BandFMColors.live.toARGB32(), 0xFFFF3B30);
-    expect(BandFMColors.liveDot.toARGB32(), 0xFFFF1F14);
+    //
+    // Claro e levemente coral, não vermelho puro: com saturação máxima num fundo quase
+    // preto a cor lia como alarme e gritava mais alto que o próprio programa. O ponto
+    // fica um passo à frente do rótulo porque é ele que pulsa.
+    expect(BandFMColors.live.toARGB32(), 0xFFFF6F63);
+    expect(BandFMColors.liveDot.toARGB32(), 0xFFFF5A4E);
   });
 
   test('o texto terciário não foi escurecido além do aprovado', () {
