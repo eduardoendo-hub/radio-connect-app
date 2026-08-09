@@ -22,6 +22,7 @@ class TelaPromocao extends StatefulWidget {
 class _TelaPromocaoState extends State<TelaPromocao> {
   Map<String, dynamic>? _completa;
   bool _participei = false;
+  bool _venci = false;
   bool _enviando = false;
   String? _erro;
 
@@ -38,6 +39,7 @@ class _TelaPromocaoState extends State<TelaPromocao> {
       setState(() {
         _completa = (r['promocao'] as Map?)?.cast<String, dynamic>();
         _participei = r['participei'] == true;
+        _venci = r['venci'] == true;
       });
     } catch (_) {
       // O cartão do No Ar já trouxe título, arte e chamada. Sem a chamada completa a
@@ -215,6 +217,48 @@ class _TelaPromocaoState extends State<TelaPromocao> {
     );
   }
 
+  /// O fecho.
+  ///
+  /// Promoção que termina em "concorrendo" nunca vira história. Aqui ela vira: ou a
+  /// pessoa ganhou — e essa é a tela que ela mostra para os outros —, ou não ganhou, e
+  /// o produto diz isso sem rodeio e agradece. Fingir que nada aconteceu seria pior.
+  Widget _resultado(String contemplado) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: BoxDecoration(
+        color: _venci
+            ? BandFMColors.orange.withValues(alpha: .14)
+            : Colors.white.withValues(alpha: .045),
+        borderRadius: BorderRadius.circular(BandFMRadii.md),
+        border: Border.all(
+          color: _venci
+              ? BandFMColors.orange.withValues(alpha: .45)
+              : Colors.white.withValues(alpha: .08),
+        ),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(_venci ? Symbols.trophy : Symbols.campaign,
+              size: 20, fill: 1,
+              color: _venci ? BandFMColors.orange : BandFMColors.textTertiary),
+          const SizedBox(width: 10),
+          Text(_venci ? 'Você ganhou!' : 'Resultado',
+              style: TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w800,
+                  color: _venci ? Colors.white : BandFMColors.textSecondary)),
+        ]),
+        const SizedBox(height: 9),
+        Text(
+          _venci
+              ? 'A rádio entra em contato pelo telefone do seu cadastro para combinar a entrega.'
+              : 'Quem levou foi $contemplado. Obrigado por participar — tem mais vindo por aí.',
+          style: const TextStyle(fontSize: 13.5, height: 1.45, color: BandFMColors.textSecondary),
+        ),
+      ]),
+    );
+  }
+
   Widget _linha(IconData icone, String rotulo, String valor) => Padding(
         padding: const EdgeInsets.only(bottom: 11),
         child: Row(children: [
@@ -231,6 +275,9 @@ class _TelaPromocaoState extends State<TelaPromocao> {
       );
 
   Widget _acao(DateTime? sorteio, {required bool temRegras}) {
+    final resultado = (_completa ?? widget.promocao)['resultado']?.toString();
+    if (resultado != null && resultado.isNotEmpty) return _resultado(resultado);
+
     if (_participei) {
       return Container(
         width: double.infinity,
