@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../api.dart';
@@ -132,16 +134,26 @@ class _CartaoPromocaoState extends State<CartaoPromocao> {
 
   /// A foto, com o rótulo em cima e a dobra escura embaixo.
   Widget _arte(String url) => Stack(children: [
-        AspectRatio(
-          aspectRatio: 16 / 9,
-          child: Image.network(
-            url,
-            fit: BoxFit.cover,
-            // Enquanto a foto não chega, a superfície do cartão ocupa o lugar dela. Um
-            // buraco branco piscando no meio da tela escura é pior que esperar.
-            loadingBuilder: (c, filho, progresso) =>
-                progresso == null ? filho : Container(color: BandFMColors.surface),
-            errorBuilder: (_, __, ___) => Container(color: BandFMColors.surface),
+        // 16:9 **com teto**.
+        //
+        // Só a proporção não basta: numa janela larga — o navegador do desktop na
+        // demonstração, um tablet — a foto cresce junto com a largura e empurra o
+        // título e o botão para fora da tela. A pessoa vê um pôster enorme e nenhuma
+        // chamada. Acima do teto a imagem corta em vez de crescer, que é o que um
+        // pôster faz quando a parede é maior.
+        LayoutBuilder(
+          builder: (contexto, limites) => SizedBox(
+            height: math.min(limites.maxWidth * 9 / 16, 230),
+            width: double.infinity,
+            child: Image.network(
+              url,
+              fit: BoxFit.cover,
+              // Enquanto a foto não chega, a superfície do cartão ocupa o lugar dela.
+              // Um buraco branco piscando no meio da tela escura é pior que esperar.
+              loadingBuilder: (c, filho, progresso) =>
+                  progresso == null ? filho : Container(color: BandFMColors.surface),
+              errorBuilder: (_, __, ___) => Container(color: BandFMColors.surface),
+            ),
           ),
         ),
         // A dobra: do transparente até a cor exata da superfície do cartão, para não
