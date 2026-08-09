@@ -154,18 +154,31 @@ class _CartaoPromocaoState extends State<CartaoPromocao> {
             ),
           ),
         ),
-        // O selo da promoção mora na dobra — a faixa onde a foto já virou a cor do
-        // cartão. É o que permite usar selo com fundo preto, que é como quase toda
-        // rádio entrega a arte: ali o retângulo preto simplesmente não existe. Marca
-        // d'água sobre a foto mostraria a caixa.
+        // O selo em pastilha, e não solto sobre a foto.
+        //
+        // Tentei tirar o fundo preto do selo por transparência e não dá: o wordmark da
+        // Band é preto com contorno claro, então remover o preto apaga a própria letra.
+        // Tentei escondê-lo na dobra e ficou um retângulo levemente mais escuro que o
+        // gradiente — pior, porque parece defeito.
+        //
+        // A saída é assumir: pastilha preta com raio, a mesma linguagem do rótulo
+        // "PROMOÇÃO NO AR" logo acima. Deixa de parecer artefato e passa a parecer
+        // decisão — e funciona para qualquer selo que a rádio mandar, com fundo ou sem.
         if (widget.promocao['seloUrl'] != null)
           Positioned(
-            left: 14, bottom: 8,
-            child: Image.network(
-              widget.promocao['seloUrl'].toString(),
-              height: 46,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            left: 14, bottom: 10,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(9),
+              child: Container(
+                color: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Image.network(
+                  widget.promocao['seloUrl'].toString(),
+                  height: 34,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
             ),
           ),
         Positioned(

@@ -132,12 +132,19 @@ class _TelaPromocaoState extends State<TelaPromocao> {
                       Align(
                         alignment: Alignment.bottomLeft,
                         child: Padding(
-                          padding: const EdgeInsets.only(left: 14, bottom: 6),
-                          child: Image.network(
-                            p['seloUrl'].toString(),
-                            height: 52,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                          padding: const EdgeInsets.only(left: 16, bottom: 12),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              color: Colors.black,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              child: Image.network(
+                                p['seloUrl'].toString(),
+                                height: 40,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                              ),
+                            ),
                           ),
                         ),
                       ),
