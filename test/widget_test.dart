@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:radio_connect/tema.dart';
+import 'package:radio_connect/tempo.dart';
 
 void main() {
   test('a paleta da emissora segue o design system', () {
@@ -23,5 +24,22 @@ void main() {
   test('o alvo de toque mínimo é 44', () {
     // Vale mais aqui que em qualquer app: a pessoa pode estar dirigindo.
     expect(BandFMSpacing.minTouchTarget, 44.0);
+  });
+
+  test('hora do servidor é mostrada no fuso de quem olha', () {
+    // O servidor manda UTC: 18h Z é o sorteio das 15h de Brasília. Ler `.hour` sem
+    // converter mostrava o app inteiro três horas adiantado — "A seguir, 12h00" para um
+    // programa das 9h. Não aparecia em conta de diferença, só quando alguém lê o
+    // relógio, e foi por isso que passou tanto tempo.
+    final utc = instante('2026-08-13T18:00:00.000Z')!;
+    expect(utc.isUtc, false);
+    expect(horaCheia(utc), horaCheia(DateTime.parse('2026-08-13T18:00:00.000Z').toLocal()));
+  });
+
+  test('data inválida não derruba a tela', () {
+    expect(instante(null), isNull);
+    expect(instante('nem data'), isNull);
+    expect(horaCheia(null), '');
+    expect(quando(null), '');
   });
 }

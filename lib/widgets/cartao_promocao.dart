@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../api.dart';
 import '../tema.dart';
+import '../tempo.dart';
 import 'assinatura_patrocinio.dart';
 
 /// A promoção como bloco principal da tela.
@@ -216,7 +217,7 @@ class _CartaoPromocaoState extends State<CartaoPromocao> {
   /// retorno: a inscrição dura um toque, mas "quinta, 15h, ao vivo" é o que faz ela
   /// voltar com o rádio ligado. É a mesma reciprocidade do Momento respondido.
   Widget _concorrendo() {
-    final sorteio = DateTime.tryParse(widget.promocao['sorteioEm']?.toString() ?? '');
+    final sorteio = instante(widget.promocao['sorteioEm']);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -235,7 +236,7 @@ class _CartaoPromocaoState extends State<CartaoPromocao> {
             const SizedBox(height: 2),
             Text(
               sorteio != null
-                  ? 'Sorteio ${_quando(sorteio)} — ao vivo, com o locutor.'
+                  ? 'Sorteio ${quando(sorteio)} — ao vivo, com o locutor.'
                   : 'O resultado sai ao vivo, com o locutor.',
               style: const TextStyle(fontSize: 12, color: BandFMColors.textSecondary),
             ),
@@ -247,16 +248,5 @@ class _CartaoPromocaoState extends State<CartaoPromocao> {
                   fontSize: 12.5, fontWeight: FontWeight.w700, color: BandFMColors.textTertiary)),
       ]),
     );
-  }
-
-  static const _dias = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
-
-  /// "quinta, 15h" — nome do dia, não data. É assim que a rádio fala no ar, e a pessoa
-  /// não precisa converter nada de cabeça.
-  String _quando(DateTime d) {
-    final hoje = DateTime.now();
-    final mesmoDia = d.year == hoje.year && d.month == hoje.month && d.day == hoje.day;
-    final hora = d.minute == 0 ? '${d.hour}h' : '${d.hour}h${d.minute.toString().padLeft(2, '0')}';
-    return mesmoDia ? 'hoje às $hora' : '${_dias[d.weekday - 1]} às $hora';
   }
 }

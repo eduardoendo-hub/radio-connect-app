@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../api.dart';
 import '../tema.dart';
+import '../tempo.dart';
 import '../widgets/assinatura_patrocinio.dart';
 
 /// A promoção por inteiro.
@@ -66,7 +67,7 @@ class _TelaPromocaoState extends State<TelaPromocao> {
     final p = {...widget.promocao, ...?_completa};
     final imagem = p['imagemUrl']?.toString();
     final regras = p['regras']?.toString();
-    final sorteio = DateTime.tryParse(p['sorteioEm']?.toString() ?? '');
+    final sorteio = instante(p['sorteioEm']);
     final total = (p['total'] as num?)?.toInt();
 
     return Scaffold(
@@ -129,7 +130,7 @@ class _TelaPromocaoState extends State<TelaPromocao> {
               ],
 
               const SizedBox(height: 20),
-              if (sorteio != null) _linha(Symbols.event, 'Sorteio', _quando(sorteio)),
+              if (sorteio != null) _linha(Symbols.event, 'Sorteio', quando(sorteio)),
               if (total != null && total > 0)
                 _linha(Symbols.group, 'Já estão concorrendo',
                     '$total ${total == 1 ? 'ouvinte' : 'ouvintes'}'),
@@ -199,7 +200,7 @@ class _TelaPromocaoState extends State<TelaPromocao> {
               const SizedBox(height: 3),
               Text(
                 sorteio != null
-                    ? 'Deixe o rádio ligado: o nome sai ${_quando(sorteio)}, ao vivo.'
+                    ? 'Deixe o rádio ligado: o nome sai ${quando(sorteio)}, ao vivo.'
                     : 'O resultado sai ao vivo, com o locutor.',
                 style: const TextStyle(fontSize: 12.5, height: 1.4, color: BandFMColors.textSecondary),
               ),
@@ -220,14 +221,5 @@ class _TelaPromocaoState extends State<TelaPromocao> {
       child: Text(_enviando ? 'Inscrevendo…' : 'Quero participar',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
     );
-  }
-
-  static const _dias = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
-
-  String _quando(DateTime d) {
-    final hoje = DateTime.now();
-    final mesmoDia = d.year == hoje.year && d.month == hoje.month && d.day == hoje.day;
-    final hora = d.minute == 0 ? '${d.hour}h' : '${d.hour}h${d.minute.toString().padLeft(2, '0')}';
-    return mesmoDia ? 'hoje às $hora' : '${_dias[d.weekday - 1]} às $hora';
   }
 }

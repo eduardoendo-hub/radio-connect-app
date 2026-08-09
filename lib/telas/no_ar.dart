@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../estado_no_ar.dart';
 import '../tema.dart';
+import '../tempo.dart';
 import '../widgets/assinatura_patrocinio.dart';
 import '../widgets/cartao_promocao.dart';
 import 'promocao.dart';
@@ -216,10 +217,7 @@ class TelaNoAr extends StatelessWidget {
 
   Widget _proximoMomento() {
     final n = estado.proxima!;
-    final quando = DateTime.tryParse(n['comeca']?.toString() ?? '');
-    final hora = quando == null
-        ? ''
-        : '${quando.hour.toString().padLeft(2, '0')}h${quando.minute.toString().padLeft(2, '0')}';
+    final hora = horaCheia(instante(n['comeca']));
     return LinhaCartao(
       icone: const Arte(icone: Symbols.schedule, tamanho: 44),
       titulo: 'A seguir, $hora',
