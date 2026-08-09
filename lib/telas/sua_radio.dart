@@ -132,13 +132,20 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
     final sorteio = instante(p['sorteioEm']);
     final arte = p['imagemUrl']?.toString();
 
+    final contemplado = p['resultado']?.toString();
+
+    // "Encerrada" sozinho não diz nada a quem esperou o sorteio. Dizer quem levou é o
+    // mínimo de retorno para quem participou — e é o que separa uma promoção de um
+    // formulário que engoliu o cadastro da pessoa.
     final apoio = venci
         ? 'Você ganhou — a rádio entra em contato'
-        : encerrada
-            ? 'Encerrada · não foi dessa vez'
-            : sorteio != null
-                ? 'Concorrendo · sorteio ${quando(sorteio)}'
-                : 'Concorrendo';
+        : contemplado != null && contemplado.isNotEmpty
+            ? 'Quem levou foi $contemplado'
+            : encerrada
+                ? 'Encerrada · sem resultado'
+                : sorteio != null
+                    ? 'Concorrendo · sorteio ${quando(sorteio)}'
+                    : 'Concorrendo';
 
     return GestureDetector(
       onTap: () => Navigator.of(context)

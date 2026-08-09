@@ -40,6 +40,7 @@ class CartaoPromocao extends StatefulWidget {
 
 class _CartaoPromocaoState extends State<CartaoPromocao> {
   bool _participei = false;
+  bool _venci = false;
   int? _total;
 
   @override
@@ -58,6 +59,7 @@ class _CartaoPromocaoState extends State<CartaoPromocao> {
       if (!mounted) return;
       setState(() {
         _participei = r['participei'] == true;
+        _venci = r['venci'] == true;
         _total = (r['promocao']?['total'] as num?)?.toInt();
       });
     } catch (_) {
@@ -198,6 +200,9 @@ class _CartaoPromocaoState extends State<CartaoPromocao> {
       ]);
 
   Widget _acao() {
+    final resultado = widget.promocao['resultado']?.toString();
+    if (resultado != null && resultado.isNotEmpty) return _resultado(resultado);
+
     if (_participei) return _concorrendo();
 
     return FilledButton(
@@ -210,6 +215,57 @@ class _CartaoPromocaoState extends State<CartaoPromocao> {
       ),
       child: const Text('Quero participar',
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+    );
+  }
+
+  /// O resultado, no lugar onde antes ficava o convite.
+  ///
+  /// A promoção não desaparece no instante em que o locutor diz o nome: ela fica mais
+  /// duas horas, agora contando o fim. Se sumisse junto com o resultado, quem estava
+  /// ouvindo abriria o aplicativo para ver quem ganhou e encontraria uma tela sem nada
+  /// — a rádio teria criado a expectativa e apagado a resposta.
+  ///
+  /// Quem participou vê a própria sorte; quem não participou vê que a coisa aconteceu
+  /// de verdade, com nome e tudo. Os dois recados importam.
+  Widget _resultado(String contemplado) {
+    final ganhei = _participei && _venci;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      decoration: BoxDecoration(
+        color: ganhei
+            ? BandFMColors.orange.withValues(alpha: .14)
+            : Colors.white.withValues(alpha: .045),
+        borderRadius: BorderRadius.circular(BandFMRadii.md),
+        border: Border.all(
+          color: ganhei
+              ? BandFMColors.orange.withValues(alpha: .45)
+              : Colors.white.withValues(alpha: .08),
+        ),
+      ),
+      child: Row(children: [
+        Icon(ganhei ? Symbols.trophy : Symbols.campaign,
+            size: 19, fill: 1,
+            color: ganhei ? BandFMColors.orange : BandFMColors.textTertiary),
+        const SizedBox(width: 11),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(ganhei ? 'Você ganhou!' : 'Resultado saiu',
+                style: TextStyle(
+                    fontSize: 14.5, fontWeight: FontWeight.w800,
+                    color: ganhei ? Colors.white : BandFMColors.textSecondary)),
+            const SizedBox(height: 2),
+            Text(
+              ganhei
+                  ? 'A rádio entra em contato para combinar a entrega.'
+                  : _participei
+                      ? 'Quem levou foi $contemplado. Não foi dessa vez.'
+                      : 'Quem levou foi $contemplado.',
+              style: const TextStyle(fontSize: 12, height: 1.35, color: BandFMColors.textSecondary),
+            ),
+          ]),
+        ),
+      ]),
     );
   }
 
