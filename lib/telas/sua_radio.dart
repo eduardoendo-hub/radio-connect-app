@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import '../api.dart';
 import '../tema.dart';
+import '../tempo.dart';
 import '../widgets/comuns.dart';
 import '../widgets/escada_conexao.dart';
+import 'promocao.dart';
 
 /// 08 · Sua Rádio.
 ///
@@ -14,13 +17,47 @@ import '../widgets/escada_conexao.dart';
 ///
 /// **Estado atual: números simulados.** O backend já grava os eventos e tem o modelo
 /// de snapshot; o cálculo do Índice entra em seguida.
-class TelaSuaRadio extends StatelessWidget {
+class TelaSuaRadio extends StatefulWidget {
   final String? nome;
   const TelaSuaRadio({super.key, this.nome});
 
   @override
+  State<TelaSuaRadio> createState() => _TelaSuaRadioState();
+}
+
+class _TelaSuaRadioState extends State<TelaSuaRadio> {
+  List<Map<String, dynamic>> _promocoes = [];
+  bool _carregando = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+  }
+
+  /// As promoções desta pessoa.
+  ///
+  /// Aqui é a memória da relação, então a lista é de participações e não de promoções
+  /// no ar: o que importa é o que **ela** fez. Em andamento primeiro, encerradas
+  /// depois — o que ainda pode acontecer vale mais que o que já passou.
+  Future<void> _carregar() async {
+    try {
+      final r = await Api.obter('/promocoes');
+      if (!mounted) return;
+      setState(() {
+        _promocoes = ((r['promocoes'] as List?) ?? const [])
+            .map((e) => (e as Map).cast<String, dynamic>())
+            .toList();
+        _carregando = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _carregando = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final primeiroNome = (nome ?? 'Ouvinte').split(' ').first;
+    final primeiroNome = (widget.nome ?? 'Ouvinte').split(' ').first;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -72,22 +109,55 @@ class TelaSuaRadio extends StatelessWidget {
           Expanded(child: _numero('12', 'Momentos no mês')),
         ]),
 
-        const SizedBox(height: BandFMSpacing.x5),
-        const TituloBloco('Suas promoções'),
-        LinhaCartao(
-          icone: const Arte(icone: Symbols.local_activity, tamanho: 44, cor: Color(0xFF1F4D2B)),
-          titulo: 'Baladão Band FM',
-          apoio: 'Participando · resultado às 11h',
-          aDireita: const Icon(Symbols.chevron_right, size: 18, color: BandFMColors.textTertiary),
-        ),
-        const SizedBox(height: 8),
-        const LinhaCartao(
-          opacidade: .65,
-          icone: Arte(icone: Symbols.redeem, tamanho: 44),
-          titulo: 'Kit Band FM',
-          apoio: 'Encerrada · não foi dessa vez',
-        ),
+        // Só existe o bloco se a pessoa participou de alguma coisa. Título com vazio
+        // embaixo anuncia uma falta — e nesta tela, que é a da relação, isso é o pior
+        // recado possível para quem acabou de chegar.
+        if (!_carregando && _promocoes.isNotEmpty) ...[
+          const SizedBox(height: BandFMSpacing.x5),
+          const TituloBloco('Suas promoções'),
+          for (var i = 0; i < _promocoes.length; i++) ...[
+            if (i > 0) const SizedBox(height: 8),
+            _promocao(_promocoes[i]),
+          ],
+        ],
       ],
+    );
+  }
+
+  /// Uma participação. A arte da promoção vira a miniatura — é por ela que a pessoa
+  /// reconhece, não por um ícone genérico igual para todas.
+  Widget _promocao(Map<String, dynamic> p) {
+    final encerrada = p['encerrada'] == true;
+    final venci = p['venci'] == true;
+    final sorteio = instante(p['sorteioEm']);
+    final arte = p['imagemUrl']?.toString();
+
+    final apoio = venci
+        ? 'Você ganhou — a rádio entra em contato'
+        : encerrada
+            ? 'Encerrada · não foi dessa vez'
+            : sorteio != null
+                ? 'Concorrendo · sorteio ${quando(sorteio)}'
+                : 'Concorrendo';
+
+    return GestureDetector(
+      onTap: () => Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => TelaPromocao(promocao: p)))
+          .then((_) => _carregar()),
+      child: LinhaCartao(
+        opacidade: encerrada && !venci ? .65 : 1,
+        icone: arte != null && arte.isNotEmpty
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(BandFMRadii.md),
+                child: Image.network(arte, width: 44, height: 44, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        const Arte(icone: Symbols.local_activity, tamanho: 44)),
+              )
+            : const Arte(icone: Symbols.local_activity, tamanho: 44),
+        titulo: p['titulo']?.toString() ?? '',
+        apoio: apoio,
+        aDireita: const Icon(Symbols.chevron_right, size: 18, color: BandFMColors.textTertiary),
+      ),
     );
   }
 
