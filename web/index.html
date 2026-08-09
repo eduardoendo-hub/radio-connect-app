@@ -34,6 +34,90 @@
 </head>
 <body style="background:#0B0B0C;margin:0">
   <!--
+    A abertura.
+    ===========
+
+    Ela vive AQUI, e não numa tela do Flutter, e essa é a decisão inteira.
+
+    O aplicativo leva um par de segundos para subir: baixa o CanvasKit, as fontes, o
+    pacote. Uma abertura feita em Flutter só começaria DEPOIS disso — a pessoa esperaria
+    duas vezes, e num aplicativo de rádio, onde ela quer som agora, esperar duas vezes é
+    caro. Aqui a marca ocupa exatamente o tempo que já era perdido: o HTML pinta antes
+    de existir uma linha de Dart, e sai quando o primeiro quadro está pronto.
+
+    Regras que vêm junto:
+    · Sai no primeiro quadro, nunca por relógio. Se a rede estiver boa, é rápida; se
+      estiver ruim, ela é justamente o que a pessoa vê em vez de uma tela preta.
+    · Tem piso de 900ms — sem ele, numa conexão rápida, o logo aparece e some antes de
+      alguém registrar, o que é pior do que não existir.
+    · Qualquer toque encerra. Abertura que não se pode pular vira pedágio.
+    · Só na abertura fria. Voltar de segundo plano não recarrega a página, então ela
+      não reaparece — que é o comportamento certo.
+  -->
+  <style>
+    @keyframes rc-entrar { from { opacity: 0; transform: scale(.94) } to { opacity: 1; transform: scale(1) } }
+    @keyframes rc-pulso  { 0%,100% { opacity: .25 } 50% { opacity: .9 } }
+    #abertura {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 26px; background: #0B0B0C;
+      transition: opacity .45s ease;
+    }
+    #abertura .marca {
+      width: min(58vw, 260px);
+      animation: rc-entrar .75s cubic-bezier(.2,.7,.3,1) both;
+    }
+    /* Três pontos no ritmo de quem está no ar. Nada de barra de progresso: não há
+       progresso para mostrar, e barra falsa é mentira desenhada. */
+    #abertura .ondas { display: flex; gap: 7px }
+    #abertura .ondas i {
+      width: 7px; height: 7px; border-radius: 50%; background: #F6821F;
+      animation: rc-pulso 1.05s ease-in-out infinite;
+    }
+    #abertura .ondas i:nth-child(2) { animation-delay: .16s }
+    #abertura .ondas i:nth-child(3) { animation-delay: .32s }
+    #abertura.saindo { opacity: 0; pointer-events: none }
+    @media (prefers-reduced-motion: reduce) {
+      #abertura .marca, #abertura .ondas i { animation: none }
+    }
+  </style>
+  <div id="abertura">
+    <img class="marca" src="logo-abertura.webp" alt="Band FM">
+    <div class="ondas"><i></i><i></i><i></i></div>
+  </div>
+  <script>
+    (function () {
+      var abertura = document.getElementById('abertura');
+      var nasceu = Date.now();
+      var PISO = 900;
+      var saiu = false;
+
+      function sair() {
+        if (saiu) return;
+        saiu = true;
+        var espera = Math.max(0, PISO - (Date.now() - nasceu));
+        setTimeout(function () {
+          abertura.classList.add('saindo');
+          setTimeout(function () { abertura.remove() }, 500);
+        }, espera);
+      }
+
+      // Pular. Abertura que não se pode pular vira pedágio.
+      abertura.addEventListener('pointerdown', function () { PISO = 0; sair() });
+
+      // O sinal de que o aplicativo está pronto é o <flutter-view> aparecer no DOM —
+      // é o primeiro quadro de verdade, não um palpite de tempo.
+      var vigia = new MutationObserver(function () {
+        if (document.querySelector('flutter-view, flt-glass-pane')) { vigia.disconnect(); sair() }
+      });
+      vigia.observe(document.body, { childList: true, subtree: true });
+
+      // Rede muito ruim ou falha no carregamento: a abertura não pode virar prisão.
+      setTimeout(sair, 12000);
+    })();
+  </script>
+
+  <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
     or to give the user feedback during the initialization process.

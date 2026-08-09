@@ -25,19 +25,21 @@ import 'assinatura_patrocinio.dart';
 class CartaoPromocao extends StatefulWidget {
   final Map<String, dynamic> promocao;
 
-  /// Chamado depois de entrar no sorteio, para a tela recarregar o estado.
-  final VoidCallback? aoParticipar;
+  /// Abrir a promoção por inteiro. **Participar passa por aqui, sempre.**
+  ///
+  /// O botão do cartão não inscreve direto: sorteio exige aceite do regulamento, e
+  /// aceite que a pessoa não teve como ler não é aceite. Um toque a mais aqui é o que
+  /// separa uma promoção de rádio de um formulário que ninguém leu.
+  final VoidCallback aoAbrir;
 
-  const CartaoPromocao({super.key, required this.promocao, this.aoParticipar});
+  const CartaoPromocao({super.key, required this.promocao, required this.aoAbrir});
 
   @override
   State<CartaoPromocao> createState() => _CartaoPromocaoState();
 }
 
 class _CartaoPromocaoState extends State<CartaoPromocao> {
-  bool _enviando = false;
   bool _participei = false;
-  String? _erro;
   int? _total;
 
   @override
@@ -61,25 +63,6 @@ class _CartaoPromocaoState extends State<CartaoPromocao> {
     } catch (_) {
       // Sem resposta o cartão continua convidando. Errar para o lado do convite é
       // melhor que esconder a promoção de quem ainda não se inscreveu.
-    }
-  }
-
-  Future<void> _participar() async {
-    if (_enviando) return;
-    setState(() { _enviando = true; _erro = null; });
-    try {
-      final r = await Api.enviar('/promocoes/${widget.promocao['id']}/participar', {});
-      if (!mounted) return;
-      setState(() {
-        _participei = r['participei'] == true;
-        _total = (r['total'] as num?)?.toInt();
-      });
-      widget.aoParticipar?.call();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _erro = e is ErroApi ? e.mensagem : 'Não deu para inscrever agora.');
-    } finally {
-      if (mounted) setState(() => _enviando = false);
     }
   }
 
@@ -118,10 +101,6 @@ class _CartaoPromocaoState extends State<CartaoPromocao> {
               ],
               const SizedBox(height: 14),
               _acao(),
-              if (_erro != null) ...[
-                const SizedBox(height: 10),
-                Text(_erro!, style: const TextStyle(fontSize: 13, color: Color(0xFFFF9A95))),
-              ],
               if (AssinaturaPatrocinio.talvez(p['patrocinio']) != null) ...[
                 const SizedBox(height: 14),
                 AssinaturaPatrocinio.talvez(p['patrocinio'])!,
@@ -175,6 +154,20 @@ class _CartaoPromocaoState extends State<CartaoPromocao> {
             ),
           ),
         ),
+        // O selo da promoção mora na dobra — a faixa onde a foto já virou a cor do
+        // cartão. É o que permite usar selo com fundo preto, que é como quase toda
+        // rádio entrega a arte: ali o retângulo preto simplesmente não existe. Marca
+        // d'água sobre a foto mostraria a caixa.
+        if (widget.promocao['seloUrl'] != null)
+          Positioned(
+            left: 14, bottom: 8,
+            child: Image.network(
+              widget.promocao['seloUrl'].toString(),
+              height: 46,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
         Positioned(
           left: 16, top: 14,
           child: Container(
@@ -194,21 +187,17 @@ class _CartaoPromocaoState extends State<CartaoPromocao> {
   Widget _acao() {
     if (_participei) return _concorrendo();
 
-    return Row(children: [
-      Expanded(
-        child: FilledButton(
-          onPressed: _enviando ? null : _participar,
-          style: FilledButton.styleFrom(
-            backgroundColor: BandFMColors.orange,
-            foregroundColor: Colors.black,
-            minimumSize: const Size.fromHeight(BandFMSpacing.minTouchTarget),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(BandFMRadii.pill)),
-          ),
-          child: Text(_enviando ? 'Inscrevendo…' : 'Quero participar',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-        ),
+    return FilledButton(
+      onPressed: widget.aoAbrir,
+      style: FilledButton.styleFrom(
+        backgroundColor: BandFMColors.orange,
+        foregroundColor: Colors.black,
+        minimumSize: const Size.fromHeight(BandFMSpacing.minTouchTarget),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(BandFMRadii.pill)),
       ),
-    ]);
+      child: const Text('Quero participar',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+    );
   }
 
   /// Depois de inscrito o cartão **não some — muda de estado**.

@@ -128,6 +128,19 @@ class _TelaPromocaoState extends State<TelaPromocao> {
                         ),
                       ),
                     ),
+                    if (p['seloUrl'] != null)
+                      Align(
+                        alignment: Alignment.bottomLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 14, bottom: 6),
+                          child: Image.network(
+                            p['seloUrl'].toString(),
+                            height: 52,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                          ),
+                        ),
+                      ),
                   ]),
                 )
               : null,
@@ -159,20 +172,14 @@ class _TelaPromocaoState extends State<TelaPromocao> {
                 _linha(Symbols.group, 'Já estão concorrendo',
                     '$total ${total == 1 ? 'ouvinte' : 'ouvintes'}'),
 
-              const SizedBox(height: 22),
-              _acao(sorteio),
-              if (_erro != null) ...[
-                const SizedBox(height: 10),
-                Text(_erro!, style: const TextStyle(fontSize: 13.5, color: Color(0xFFFF9A95))),
-              ],
-
-              if (AssinaturaPatrocinio.talvez(p['patrocinio']) != null) ...[
-                const SizedBox(height: 20),
-                AssinaturaPatrocinio.talvez(p['patrocinio'])!,
-              ],
-
+              // O regulamento vem ANTES do botão, e não num rodapé depois dele.
+              //
+              // Aceite que a pessoa não teve como ler não é aceite — é caixinha
+              // marcada. Sorteio é promessa com regra, e a regra tem que estar na
+              // frente de quem aceita, na mesma rolagem. Custa uma tela mais longa e
+              // resolve o único problema que uma promoção mal feita cria de verdade.
               if (regras != null && regras.isNotEmpty) ...[
-                const SizedBox(height: 28),
+                const SizedBox(height: 22),
                 const Text('REGULAMENTO',
                     style: TextStyle(
                         fontSize: 10, fontWeight: FontWeight.w800,
@@ -181,6 +188,18 @@ class _TelaPromocaoState extends State<TelaPromocao> {
                 Text(regras,
                     style: const TextStyle(
                         fontSize: 12.5, height: 1.6, color: BandFMColors.textTertiary)),
+              ],
+
+              const SizedBox(height: 22),
+              _acao(sorteio, temRegras: regras != null && regras.isNotEmpty),
+              if (_erro != null) ...[
+                const SizedBox(height: 10),
+                Text(_erro!, style: const TextStyle(fontSize: 13.5, color: Color(0xFFFF9A95))),
+              ],
+
+              if (AssinaturaPatrocinio.talvez(p['patrocinio']) != null) ...[
+                const SizedBox(height: 20),
+                AssinaturaPatrocinio.talvez(p['patrocinio'])!,
               ],
             ]),
           ),
@@ -204,7 +223,7 @@ class _TelaPromocaoState extends State<TelaPromocao> {
         ]),
       );
 
-  Widget _acao(DateTime? sorteio) {
+  Widget _acao(DateTime? sorteio, {required bool temRegras}) {
     if (_participei) {
       return Container(
         width: double.infinity,
@@ -234,16 +253,28 @@ class _TelaPromocaoState extends State<TelaPromocao> {
       );
     }
 
-    return FilledButton(
-      onPressed: _enviando ? null : _participar,
-      style: FilledButton.styleFrom(
-        backgroundColor: BandFMColors.orange,
-        foregroundColor: Colors.black,
-        minimumSize: const Size.fromHeight(52),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(BandFMRadii.pill)),
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      FilledButton(
+        onPressed: _enviando ? null : _participar,
+        style: FilledButton.styleFrom(
+          backgroundColor: BandFMColors.orange,
+          foregroundColor: Colors.black,
+          minimumSize: const Size.fromHeight(52),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(BandFMRadii.pill)),
+        ),
+        child: Text(
+          _enviando ? 'Inscrevendo…' : (temRegras ? 'Aceitar e participar' : 'Quero participar'),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
       ),
-      child: Text(_enviando ? 'Inscrevendo…' : 'Quero participar',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-    );
+      if (temRegras) ...[
+        const SizedBox(height: 9),
+        const Text(
+          'Ao participar você concorda com o regulamento acima.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 11.5, color: BandFMColors.textTertiary),
+        ),
+      ],
+    ]);
   }
 }

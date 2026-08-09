@@ -118,16 +118,19 @@ class TelaNoAr extends StatelessWidget {
                   // Momento é *agora* e pede resposta em segundos; promoção é *hoje* e
                   // espera. Os dois disputando o mesmo lugar fariam a tela gritar duas
                   // vezes e a pessoa não atender nenhuma.
-                  GestureDetector(
-                    onTap: () => Navigator.of(context)
+                  Builder(builder: (contexto) {
+                    void abrir() => Navigator.of(contexto)
                         .push(MaterialPageRoute(builder: (_) => TelaPromocao(promocao: promocao)))
-                        .then((_) => estado.atualizar()),
-                    child: CartaoPromocao(
-                      key: ValueKey(promocao['id']),
-                      promocao: promocao,
-                      aoParticipar: estado.atualizar,
-                    ),
-                  ),
+                        .then((_) => estado.atualizar());
+                    return GestureDetector(
+                      onTap: abrir,
+                      child: CartaoPromocao(
+                        key: ValueKey(promocao['id']),
+                        promocao: promocao,
+                        aoAbrir: abrir,
+                      ),
+                    );
+                  }),
                   const SizedBox(height: BandFMSpacing.x3),
                 ],
 
