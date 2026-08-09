@@ -34,18 +34,13 @@ class AssinaturaPatrocinio extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final logo = patrocinio['logoUrl']?.toString();
-    final marca = (logo != null && logo.isNotEmpty)
-        ? ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: discreta ? 15 : 19, maxWidth: discreta ? 76 : 94),
-            child: Image.network(logo, fit: BoxFit.contain, errorBuilder: (_, __, ___) => _nome()),
-          )
-        : _nome();
+    final marca = (logo != null && logo.isNotEmpty) ? _placa(logo) : _nome();
 
     if (discreta) {
       return Row(mainAxisSize: MainAxisSize.min, children: [
         const Text('Um oferecimento',
-            style: TextStyle(fontSize: 10, color: BandFMColors.textTertiary)),
-        const SizedBox(width: 7),
+            style: TextStyle(fontSize: 12, color: BandFMColors.textTertiary)),
+        const SizedBox(width: 8),
         marca,
       ]);
     }
@@ -68,10 +63,37 @@ class AssinaturaPatrocinio extends StatelessWidget {
     );
   }
 
+  /// O logo sobre uma placa clara.
+  ///
+  /// **Sem isto, metade das marcas do Brasil some.** O logo da Ituran é azul-marinho
+  /// com fundo transparente: num app de fundo quase preto, o desenho existe e ninguém
+  /// vê. O da Soneda funciona por acaso — o criativo já traz o próprio roxo atrás.
+  ///
+  /// Recolorir a marca do anunciante não é opção; é a única coisa num contrato de mídia
+  /// que não se mexe. Então a placa é nossa: o mesmo branco de sempre atrás de qualquer
+  /// logo, que é o que impressão gráfica faz há um século quando a arte é escura e o
+  /// papel também. Como o produto é white-label, isso não é um ajuste para a Ituran —
+  /// é o que faz a próxima rádio poder vender para qualquer anunciante.
+  Widget _placa(String logo) => Container(
+        padding: EdgeInsets.symmetric(
+            horizontal: discreta ? 7 : 9, vertical: discreta ? 4 : 5),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(discreta ? 5 : 6),
+        ),
+        child: ConstrainedBox(
+          // Discreta 20% maior: no cabeçalho do programa a assinatura fica o dia
+          // inteiro, e pequena demais ela vira ruído que ninguém lê nem esquece.
+          constraints: BoxConstraints(
+              maxHeight: discreta ? 18 : 21, maxWidth: discreta ? 91 : 104),
+          child: Image.network(logo, fit: BoxFit.contain, errorBuilder: (_, __, ___) => _nome()),
+        ),
+      );
+
   Widget _nome() => Text(
         patrocinio['nome']?.toString() ?? '',
         style: TextStyle(
-            fontSize: discreta ? 11.5 : 14,
+            fontSize: discreta ? 13.5 : 14,
             fontWeight: FontWeight.w800,
             letterSpacing: .2,
             color: discreta ? BandFMColors.textSecondary : Colors.white),
