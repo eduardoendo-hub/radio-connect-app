@@ -22,13 +22,16 @@ class BandFMColors {
   //
   // A primeira versão usava #FF1F14 — saturação máxima, sem nenhum verde nem azul.
   // Num fundo quase preto isso não lê como "acontecendo agora", lê como alarme: a cor
-  // grita mais alto que o próprio programa. Clarear e tirar um pouco da saturação
-  // mantém o sinal (ainda é o único vermelho do produto) e devolve a elegância.
+  // grita mais alto que o próprio programa. A segunda foi longe demais na direção
+  // oposta e virou coral: bonito e sem urgência nenhuma.
+  //
+  // Aqui é o meio-termo, e é onde tem que ficar: vermelho de sangue, escuro o bastante
+  // para não gritar e saturado o bastante para significar alguma coisa.
   //
   // O ponto continua um passo mais forte que o rótulo, porque é ele que pulsa: o
   // movimento chama o olho, então a cor não precisa fazer esse trabalho sozinha.
-  static const live = Color(0xFFFF6F63);        // rótulo NO AR
-  static const liveDot = Color(0xFFFF5A4E);     // ponto pulsante
+  static const live = Color(0xFFEE4A3F);        // rótulo NO AR
+  static const liveDot = Color(0xFFE0342A);     // ponto pulsante
 
   static const momentGradient = LinearGradient(
     begin: Alignment.topLeft, end: Alignment.bottomRight,
