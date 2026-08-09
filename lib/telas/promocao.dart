@@ -77,9 +77,26 @@ class _TelaPromocaoState extends State<TelaPromocao> {
           expandedHeight: imagem != null && imagem.isNotEmpty ? 260 : 0,
           pinned: true,
           backgroundColor: BandFMColors.bg,
-          leading: IconButton(
-            icon: const Icon(Symbols.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
+          // Voltar precisa ser desenhado, não herdado.
+          //
+          // A seta padrão é branca e some sobre a parte clara de uma foto qualquer — e
+          // no navegador não existe o gesto de arrastar para voltar, então quem entra
+          // aqui fica preso. A pastilha escura é a mesma linguagem do rótulo
+          // "PROMOÇÃO NO AR" e lê sobre qualquer arte.
+          leadingWidth: 60,
+          leading: Center(
+            child: Material(
+              color: Colors.black.withValues(alpha: .55),
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => Navigator.of(context).pop(),
+                child: const SizedBox(
+                  width: 38, height: 38,
+                  child: Icon(Symbols.arrow_back, size: 20, color: Colors.white),
+                ),
+              ),
+            ),
           ),
           flexibleSpace: imagem != null && imagem.isNotEmpty
               ? FlexibleSpaceBar(
