@@ -83,18 +83,25 @@ class _TelaPromocaoState extends State<TelaPromocao> {
           // no navegador não existe o gesto de arrastar para voltar, então quem entra
           // aqui fica preso. A pastilha escura é a mesma linguagem do rótulo
           // "PROMOÇÃO NO AR" e lê sobre qualquer arte.
-          leadingWidth: 60,
+          // A seta vem de `Icons`, não de `Symbols`.
+          //
+          // `Symbols.arrow_back` ficou invisível aqui — a pastilha desenhava e o glifo
+          // não. O codepoint está na fonte servida, então não é falta de glifo nem
+          // tree-shaking; é alguma coisa entre este widget e a fonte variável dos
+          // Symbols que não vale caçar numa semana de demonstração. `Icons` usa outra
+          // fonte, que o aplicativo já carrega, e desenha.
+          leadingWidth: 62,
           leading: Center(
-            child: Material(
-              color: Colors.black.withValues(alpha: .55),
-              shape: const CircleBorder(),
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: () => Navigator.of(context).pop(),
-                child: const SizedBox(
-                  width: 38, height: 38,
-                  child: Icon(Symbols.arrow_back, size: 20, color: Colors.white),
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: 38, height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: .55),
+                  shape: BoxShape.circle,
                 ),
+                child: const Icon(Icons.arrow_back, size: 20, color: Colors.white),
               ),
             ),
           ),
