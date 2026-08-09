@@ -3,6 +3,8 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../estado_no_ar.dart';
 import '../tema.dart';
 import '../widgets/assinatura_patrocinio.dart';
+import '../widgets/cartao_promocao.dart';
+import 'promocao.dart';
 import '../widgets/pulso.dart';
 import '../widgets/comuns.dart';
 import '../widgets/cartao_momento.dart';
@@ -111,7 +113,20 @@ class TelaNoAr extends StatelessWidget {
                     ),
                   const SizedBox(height: BandFMSpacing.x3),
                 ] else if (promocao != null) ...[
-                  _cartaoPromocao(promocao),
+                  // A promoção só ocupa o bloco principal quando não há Momento no ar.
+                  // Momento é *agora* e pede resposta em segundos; promoção é *hoje* e
+                  // espera. Os dois disputando o mesmo lugar fariam a tela gritar duas
+                  // vezes e a pessoa não atender nenhuma.
+                  GestureDetector(
+                    onTap: () => Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (_) => TelaPromocao(promocao: promocao)))
+                        .then((_) => estado.atualizar()),
+                    child: CartaoPromocao(
+                      key: ValueKey(promocao['id']),
+                      promocao: promocao,
+                      aoParticipar: estado.atualizar,
+                    ),
+                  ),
                   const SizedBox(height: BandFMSpacing.x3),
                 ],
 
@@ -217,79 +232,6 @@ class TelaNoAr extends StatelessWidget {
         titulo: 'Sua conexão cresceu nesta semana',
         apoio: '3h20 de escuta · 4 Momentos',
         aDireita: const Icon(Symbols.chevron_right, size: 20, color: BandFMColors.textTertiary),
-      );
-
-  /// 05 · Estado "Promoção": ela ocupa a área principal.
-  /// Promoções não são aba — vivem no No Ar, em Momentos e em Sua Rádio.
-  /// A promoção deixou de ser um pôster e virou uma linha.
-  ///
-  /// A faixa de laranja atravessada no topo, com um ícone perdido no meio e um título
-  /// de manchete embaixo, fazia a promoção gritar mais alto que o Momento no ar — que
-  /// é o coração desta tela. Aqui ela cabe em três linhas ao lado de uma miniatura, e
-  /// nenhuma informação se perdeu: o rótulo, o prêmio, como o resultado sai e a ação.
-  ///
-  /// A ação é uma pílula, não um botão de largura inteira. Botão gordo ocupando a
-  /// largura da tela é o vocabulário de formulário; aqui é convite.
-  Widget _cartaoPromocao(Map<String, dynamic> p) => Cartao(
-        padding: const EdgeInsets.all(13),
-        borda: Border.all(color: BandFMColors.orange.withValues(alpha: .26)),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // A arte vira miniatura: cor e ícone bastam para dizer "promoção".
-          Container(
-            width: 52, height: 52,
-            decoration: BoxDecoration(
-              gradient: BandFMColors.momentGradient,
-              borderRadius: BorderRadius.circular(BandFMRadii.md),
-              border: Border.all(color: const Color(0x24FFFFFF)),
-            ),
-            child: const Icon(Symbols.local_activity, fill: 1, size: 24, color: Colors.white),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('PROMOÇÃO NO AR',
-                  style: TextStyle(
-                      fontSize: 9.5, fontWeight: FontWeight.w800,
-                      letterSpacing: 1.15, color: BandFMColors.orange)),
-              const SizedBox(height: 5),
-              Text(p['titulo']?.toString() ?? '',
-                  maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 14.5, fontWeight: FontWeight.w700, height: 1.25, letterSpacing: -.2)),
-              const SizedBox(height: 3),
-              const Text('O resultado sai ao vivo, com o locutor.',
-                  style: TextStyle(fontSize: 12, height: 1.35, color: BandFMColors.textTertiary)),
-              const SizedBox(height: 11),
-              Row(children: [
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {},
-                    borderRadius: BorderRadius.circular(BandFMRadii.pill),
-                    child: Container(
-                      constraints: const BoxConstraints(minHeight: 34),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: BandFMColors.orange,
-                        borderRadius: BorderRadius.circular(BandFMRadii.pill),
-                      ),
-                      child: const Text('Quero participar',
-                          style: TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w700,
-                              color: BandFMColors.textOnBrand)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text('Regras',
-                    style: TextStyle(
-                        fontSize: 12, color: BandFMColors.textTertiary,
-                        decoration: TextDecoration.underline,
-                        decorationColor: BandFMColors.textTertiary)),
-              ]),
-            ]),
-          ),
-        ]),
       );
 
 
