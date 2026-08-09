@@ -67,13 +67,35 @@ class TelaNoAr extends StatelessWidget {
                 const SizedBox(height: BandFMSpacing.x4),
 
                 // 1º NÍVEL — presença
-                Text(
-                  programa?['nome']?.toString() ?? 'Band FM',
-                  style: const TextStyle(
-                      fontSize: 30, fontWeight: FontWeight.w800, height: 1.1, letterSpacing: -.7),
-                ),
+                //
+                // Nome do programa e rostos na mesma linha. Antes o nome ocupava a
+                // largura toda em corpo 30 e os avatares vinham na linha de baixo, ao
+                // lado do "com…" — três linhas para dizer quem está no ar, e a
+                // promoção começava depois da dobra em telas pequenas.
+                //
+                // O nome caiu 20% e continua sendo a maior coisa da tela, que é o que
+                // importa: a hierarquia é relativa, não absoluta.
+                Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                  Expanded(
+                    child: Text(
+                      programa?['nome']?.toString() ?? 'Band FM',
+                      maxLines: 2, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 24, fontWeight: FontWeight.w800, height: 1.12,
+                          letterSpacing: -.6),
+                    ),
+                  ),
+                  if (locutor != null) ...[
+                    const SizedBox(width: 12),
+                    EquipeNoAr(
+                      locutores: (estado.estado?['equipe'] as List?)?.cast<Map<String, dynamic>>()
+                          ?? [locutor],
+                      tamanho: 34,
+                    ),
+                  ],
+                ]),
                 if (locutor != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 7),
                   _equipe(estado.estado?['equipe'], locutor),
                 ],
 
@@ -180,17 +202,12 @@ class TelaNoAr extends StatelessWidget {
         ? nomes.first
         : '${nomes.sublist(0, nomes.length - 1).join(', ')} e ${nomes.last}';
 
-    return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-      EquipeNoAr(locutores: lista, tamanho: 32),
-      const SizedBox(width: 11),
-      Expanded(
-        child: Text('com $texto',
-            maxLines: 2, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-                fontSize: 14.5, fontWeight: FontWeight.w500,
-                height: 1.3, color: BandFMColors.textSecondary)),
-      ),
-    ]);
+    // Só o texto: os rostos subiram para a linha do nome do programa.
+    return Text('com $texto',
+        maxLines: 2, overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+            fontSize: 14, fontWeight: FontWeight.w500,
+            height: 1.3, color: BandFMColors.textSecondary));
   }
 
   /// "15.432 ouvintes vivendo este momento" — nunca "usuários online".
