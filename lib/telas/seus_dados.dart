@@ -106,7 +106,7 @@ class _TelaSeusDadosState extends State<TelaSeusDados> {
         backgroundColor: BandFMColors.bg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Symbols.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(false),
         ),
         title: const Text('Seus dados',

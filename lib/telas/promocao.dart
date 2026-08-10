@@ -204,6 +204,14 @@ class _TelaPromocaoState extends State<TelaPromocao> {
           // no navegador não existe o gesto de arrastar para voltar, então quem entra
           // aqui fica preso. A pastilha escura é a mesma linguagem do rótulo
           // "PROMOÇÃO NO AR" e lê sobre qualquer arte.
+          // A seta vem de `Icons`, e não de `Symbols`.
+          //
+          // `Symbols.arrow_back` desenha vazio — o mesmo problema do ícone do quadro.
+          // Já tentei fonte inteira sem tree-shaking e já tentei sem `fill`; nenhum
+          // resolveu. Cheguei a corrigir isto uma vez e quebrei de novo ao reverter a
+          // fonte, porque troquei os dois de volta em vez de só um.
+          //
+          // Fica com `Icons`, que é outra fonte, o aplicativo já carrega, e desenha.
           leadingWidth: 62,
           leading: Center(
             child: GestureDetector(
@@ -215,7 +223,7 @@ class _TelaPromocaoState extends State<TelaPromocao> {
                   color: Colors.black.withValues(alpha: .55),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Symbols.arrow_back, size: 20, color: Colors.white),
+                child: const Icon(Icons.arrow_back, size: 20, color: Colors.white),
               ),
             ),
           ),
