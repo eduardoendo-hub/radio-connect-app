@@ -156,6 +156,14 @@ class TelaNoAr extends StatelessWidget {
                   const SizedBox(height: BandFMSpacing.x3),
                 ],
 
+                // As outras promoções no ar.
+                //
+                // O bloco principal mostra uma. As demais ficavam sem lugar nenhum no
+                // aplicativo — publicar a segunda fazia a primeira sumir, e promoção
+                // invisível é inscrição que a rádio não recebe. Aqui elas são caminho, e
+                // não vitrine: linha curta, arte pequena, toque abre a promoção inteira.
+                ..._outrasPromocoes(context),
+
                 _tocandoAgora(),
                 const SizedBox(height: 10),
 
@@ -233,6 +241,43 @@ class TelaNoAr extends StatelessWidget {
       apoio: musica?['artista']?.toString() ?? 'A programação continua',
       aDireita: const Icon(Symbols.favorite, size: 20, color: BandFMColors.textTertiary),
     );
+  }
+
+  List<Widget> _outrasPromocoes(BuildContext context) {
+    final outras = (estado.estado?['outrasPromocoes'] as List?)
+            ?.cast<Map<String, dynamic>>() ??
+        const <Map<String, dynamic>>[];
+    if (outras.isEmpty) return const [];
+
+    return [
+      const TituloBloco('Também no ar'),
+      for (final p in outras) ...[
+        GestureDetector(
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => TelaPromocao(promocao: p)))
+              .then((_) => estado.atualizar()),
+          child: LinhaCartao(
+            icone: p['imagemUrl'] != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(BandFMRadii.md),
+                    child: Image.network(p['imagemUrl'].toString(),
+                        width: 44, height: 44, fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            const Arte(icone: Symbols.local_activity, tamanho: 44)),
+                  )
+                : const Arte(icone: Symbols.local_activity, tamanho: 44),
+            titulo: p['titulo']?.toString() ?? '',
+            apoio: instante(p['sorteioEm']) != null
+                ? 'Sorteio ${quando(instante(p['sorteioEm']))}'
+                : 'Promoção no ar',
+            aDireita: const Icon(Symbols.chevron_right,
+                size: 18, color: BandFMColors.textTertiary),
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+      const SizedBox(height: BandFMSpacing.x2),
+    ];
   }
 
   Widget _proximoMomento() {
