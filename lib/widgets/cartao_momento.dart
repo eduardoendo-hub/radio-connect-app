@@ -185,23 +185,20 @@ class _CartaoMomentoState extends State<CartaoMomento> {
                 // resta à direita. O ícone de microfone dentro de um círculo escuro
                 // parecia um botão que não fazia nada — virou o pulso, que é estado.
                 Row(children: [
-                  // Quadro com identidade mostra o próprio ícone; o resto mostra o
-                  // pulso. O ícone é o que a pessoa aprende a reconhecer antes de ler.
-                  if (quadro?.icone != null)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 7),
-                      // Sem `fill`.
-                      //
-                      // `fill: 1` vira uma variação de eixo na fonte variável dos
-                      // Material Symbols, e nem todo ícone tem o eixo preenchido: o da
-                      // Batalha desenhava um glifo vazio — espaço reservado, nada
-                      // dentro. O contorno é o desenho que existe para todos.
-                      child: Icon(quadro!.icone, size: 15, color: destaque),
-                    )
-                  else ...[
-                    const Pulso(tamanho: 7, ritmo: RitmoPulso.momentoAtivo),
-                    const SizedBox(width: 8),
-                  ],
+                  // **A identidade do quadro é a cor, e só a cor.**
+                  //
+                  // O ícone estava aqui e não desenhava: glifo vazio, espaço reservado,
+                  // nada dentro. Conferi que o dado chega certo, que o nome do ícone
+                  // existe no pacote e que o glifo está na fonte servida; tentei sem
+                  // tree-shaking e sem `fill`. Três tentativas, três hipóteses erradas.
+                  //
+                  // Parar aqui é decisão, não desistência: a cor já faz o trabalho —
+                  // é ela que muda o rótulo, a barra do tempo e o que a pessoa reconhece
+                  // de relance. O ícone era o segundo sinal do mesmo recado, e um
+                  // segundo sinal quebrado é pior que nenhum. O pulso volta para todos,
+                  // que é a linguagem do próprio produto para "acontecendo agora".
+                  const Pulso(tamanho: 7, ritmo: RitmoPulso.momentoAtivo),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       (contexto ?? 'A rádio quer saber').toUpperCase(),
