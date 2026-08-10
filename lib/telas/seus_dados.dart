@@ -136,17 +136,12 @@ class _TelaSeusDadosState extends State<TelaSeusDados> {
                 ),
                 const SizedBox(height: 22),
 
+                _campoTelefone(),
                 _campo('Nome completo', _nome, teclado: TextInputType.name),
                 _campo('E-mail', _email, teclado: TextInputType.emailAddress),
                 _campo('Cidade', _cidade),
                 _campoNascimento(),
                 _campoCpf(),
-
-                if (_telefone != null) ...[
-                  const SizedBox(height: 4),
-                  Text('Telefone  $_telefone',
-                      style: const TextStyle(fontSize: 12.5, color: BandFMColors.textTertiary)),
-                ],
 
                 if (_erro != null) ...[
                   const SizedBox(height: 14),
@@ -210,6 +205,46 @@ class _TelaSeusDadosState extends State<TelaSeusDados> {
         dica: 'dd/mm/aaaa',
         formato: [FilteringTextInputFormatter.digitsOnly, _MascaraData()],
       );
+
+  /// O telefone é a conta, não um dado do cadastro.
+  ///
+  /// É por ele que a pessoa entra — o código chega nele — e é ele que identifica o
+  /// ouvinte na emissora. Deixar trocar aqui seria deixar trocar a fechadura pelo lado
+  /// de dentro: digitar o número de outra pessoa e virar ela, ou digitar errado e
+  /// perder o próprio acesso na próxima entrada. Trocar de número existe, mas é um
+  /// caminho com código no número novo — não um campo de formulário.
+  ///
+  /// Vem primeiro na tela de propósito: é a âncora do resto.
+  Widget _campoTelefone() {
+    if (_telefone == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('TELEFONE',
+            style: TextStyle(
+                fontSize: 10, fontWeight: FontWeight.w800,
+                letterSpacing: 1.2, color: BandFMColors.textTertiary)),
+        const SizedBox(height: 7),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+          decoration: BoxDecoration(
+            color: BandFMColors.surface,
+            borderRadius: BorderRadius.circular(BandFMRadii.md),
+          ),
+          child: Row(children: [
+            Text(_telefone!,
+                style: const TextStyle(fontSize: 15.5, color: BandFMColors.textSecondary)),
+            const Spacer(),
+            const Icon(Symbols.lock, size: 16, color: BandFMColors.textTertiary),
+          ]),
+        ),
+        const SizedBox(height: 6),
+        const Text('É por ele que você entra no aplicativo. Para trocar, fale com a rádio.',
+            style: TextStyle(fontSize: 11.5, color: BandFMColors.textTertiary)),
+      ]),
+    );
+  }
 
   /// O CPF se escreve uma vez.
   ///
