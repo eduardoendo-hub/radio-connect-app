@@ -190,7 +190,13 @@ class _CartaoMomentoState extends State<CartaoMomento> {
                   if (quadro?.icone != null)
                     Padding(
                       padding: const EdgeInsets.only(right: 7),
-                      child: Icon(quadro!.icone, size: 15, fill: 1, color: destaque),
+                      // Sem `fill`.
+                      //
+                      // `fill: 1` vira uma variação de eixo na fonte variável dos
+                      // Material Symbols, e nem todo ícone tem o eixo preenchido: o da
+                      // Batalha desenhava um glifo vazio — espaço reservado, nada
+                      // dentro. O contorno é o desenho que existe para todos.
+                      child: Icon(quadro!.icone, size: 15, color: destaque),
                     )
                   else ...[
                     const Pulso(tamanho: 7, ritmo: RitmoPulso.momentoAtivo),
