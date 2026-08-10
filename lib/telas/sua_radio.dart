@@ -6,6 +6,7 @@ import '../tempo.dart';
 import '../widgets/comuns.dart';
 import '../widgets/escada_conexao.dart';
 import 'promocao.dart';
+import 'seus_dados.dart';
 
 /// 08 · Sua Rádio.
 ///
@@ -87,7 +88,15 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
                   style: TextStyle(fontSize: 12.5, color: BandFMColors.textTertiary)),
             ]),
           ),
-          const Icon(Symbols.settings, size: 22, color: BandFMColors.textTertiary),
+          // A engrenagem levava a lugar nenhum. Agora leva aos dados — que é a única
+          // coisa que a pessoa tem para configurar neste aplicativo, e o lugar de onde
+          // ela apaga tudo se quiser.
+          IconButton(
+            icon: const Icon(Symbols.settings, size: 22, color: BandFMColors.textTertiary),
+            onPressed: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const TelaSeusDados()))
+                .then((_) => _carregar()),
+          ),
         ]),
 
         const SizedBox(height: BandFMSpacing.x5),

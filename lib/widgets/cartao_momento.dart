@@ -264,6 +264,19 @@ class _CartaoMomentoState extends State<CartaoMomento> {
                       style: const TextStyle(fontSize: 13, color: Color(0xFFFF9A95))),
                 ],
 
+                // **A rádio pode citar quem participou, no ar.**
+                //
+                // É o que ela sempre fez — "o João do Jardim Ângela votou na Ana
+                // Castela" é rádio — e é o que o Studio agora permite de verdade. Mas
+                // quem toca num botão de votação não está pensando nisso, e descobrir
+                // depois é diferente de saber antes. Uma linha resolve, e sem ela é a
+                // emissora que fica exposta.
+                const SizedBox(height: 12),
+                const Text(
+                  'A rádio pode falar de você no ar.',
+                  style: TextStyle(fontSize: 11, color: BandFMColors.textTertiary),
+                ),
+
                 // Qualquer Momento pode ser patrocinado, não só o Fofocômetro. A
                 // assinatura fica no rodapé do cartão — abaixo da resposta, porque
                 // quem paga assina o Momento, não substitui a pergunta.

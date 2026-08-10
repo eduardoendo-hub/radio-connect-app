@@ -54,12 +54,21 @@ class Api {
     return _tratar(r);
   }
 
-  static Future<Map<String, dynamic>> enviar(String caminho, Map<String, dynamic> corpo) async {
-    final r = await http.post(
-      Uri.parse('$base$caminho'),
-      headers: _cabecalhos(),
-      body: jsonEncode(corpo),
-    );
+  /// `metodo` existe porque nem tudo que escreve é POST: atualizar o perfil é PATCH e
+  /// apagar é DELETE, e o servidor distingue de propósito — o verbo é parte do contrato.
+  static Future<Map<String, dynamic>> enviar(
+    String caminho,
+    Map<String, dynamic> corpo, {
+    String metodo = 'POST',
+  }) async {
+    final uri = Uri.parse('$base$caminho');
+    final cabecalhos = _cabecalhos();
+    final corpoJson = jsonEncode(corpo);
+    final r = switch (metodo) {
+      'PATCH' => await http.patch(uri, headers: cabecalhos, body: corpoJson),
+      'DELETE' => await http.delete(uri, headers: cabecalhos, body: corpoJson),
+      _ => await http.post(uri, headers: cabecalhos, body: corpoJson),
+    };
     return _tratar(r);
   }
 

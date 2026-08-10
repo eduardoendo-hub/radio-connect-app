@@ -4,6 +4,7 @@ import '../api.dart';
 import '../tema.dart';
 import '../tempo.dart';
 import '../widgets/assinatura_patrocinio.dart';
+import 'seus_dados.dart';
 
 /// A promoção por inteiro.
 ///
@@ -56,13 +57,131 @@ class _TelaPromocaoState extends State<TelaPromocao> {
       if (!mounted) return;
       setState(() => _participei = true);
       await _carregar();
-    } catch (e) {
+    } on ErroApi catch (e) {
       if (!mounted) return;
-      setState(() => _erro = e is ErroApi ? e.mensagem : 'Não deu para inscrever agora.');
+      // **O cadastro incompleto não é erro: é um passo que falta.**
+      //
+      // Mostrar "faltam seus dados" e parar aí faria a pessoa procurar onde resolver —
+      // e desistir no caminho. A tela dos dados abre na hora, já explicando o porquê, e
+      // ao voltar a inscrição segue sozinha. Ela tocou em participar uma vez só.
+      if (e.codigo == 'perfil_incompleto') {
+        setState(() => _enviando = false);
+        final preencheu = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(builder: (_) => TelaSeusDados(porque: e.mensagem)),
+        );
+        if (preencheu == true && mounted) await _participar();
+        return;
+      }
+      setState(() => _erro = e.mensagem);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _erro = 'Não deu para inscrever agora.');
     } finally {
       if (mounted) setState(() => _enviando = false);
     }
   }
+
+  /// Confere os dados antes de entrar no sorteio.
+  ///
+  /// É com estes dados que a rádio vai chamar a pessoa se ela ganhar, então ela precisa
+  /// vê-los antes de aceitar — não depois, num e-mail de confirmação que ninguém lê. E
+  /// é aqui que o "aceito o regulamento" acontece de verdade: nome, contato e regra na
+  /// mesma tela, uma decisão só.
+  Future<void> _confirmarEParticipar() async {
+    Map<String, dynamic>? perfil;
+    try {
+      final r = await Api.obter('/perfil');
+      perfil = (r['perfil'] as Map).cast<String, dynamic>();
+      if (r['podeConcorrer'] != true) {
+        if (!mounted) return;
+        final preencheu = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => TelaSeusDados(porque: r['explicacao']?.toString()),
+          ),
+        );
+        if (preencheu != true) return;
+      }
+    } catch (_) {
+      // Sem perfil, tenta participar mesmo assim: o servidor recusa e o caminho de cima
+      // abre a tela dos dados. Errar para o lado de deixar tentar é melhor que travar.
+      await _participar();
+      return;
+    }
+
+    if (!mounted) return;
+    final confirmou = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: BandFMColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (c) => _folhaDeConfirmacao(c, perfil!),
+    );
+    if (confirmou == true) await _participar();
+  }
+
+  Widget _folhaDeConfirmacao(BuildContext c, Map<String, dynamic> perfil) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Confirme seus dados',
+                style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Colors.white)),
+            const SizedBox(height: 6),
+            const Text('É assim que a rádio vai te achar se você ganhar.',
+                style: TextStyle(fontSize: 13.5, color: BandFMColors.textSecondary)),
+            const SizedBox(height: 18),
+            _dado('Nome', perfil['nome']?.toString()),
+            _dado('E-mail', perfil['email']?.toString()),
+            _dado('Telefone', perfil['telefone']?.toString()),
+            _dado('CPF', perfil['cpf']?.toString()),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(c, true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: BandFMColors.orange,
+                    foregroundColor: Colors.black,
+                    minimumSize: const Size.fromHeight(50),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(BandFMRadii.pill)),
+                  ),
+                  child: const Text('Confirmar e participar',
+                      style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton(
+                onPressed: () async {
+                  Navigator.pop(c, false);
+                  final mudou = await Navigator.of(context)
+                      .push<bool>(MaterialPageRoute(builder: (_) => const TelaSeusDados()));
+                  if (mudou == true && mounted) await _confirmarEParticipar();
+                },
+                child: const Text('Corrigir meus dados',
+                    style: TextStyle(fontSize: 13, color: BandFMColors.textTertiary)),
+              ),
+            ),
+          ]),
+      );
+
+  Widget _dado(String rotulo, String? valor) => Padding(
+        padding: const EdgeInsets.only(bottom: 9),
+        child: Row(children: [
+          SizedBox(
+            width: 78,
+            child: Text(rotulo,
+                style: const TextStyle(fontSize: 12.5, color: BandFMColors.textTertiary)),
+          ),
+          Expanded(
+            child: Text(valor ?? '—',
+                style: const TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+          ),
+        ]),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -309,7 +428,7 @@ class _TelaPromocaoState extends State<TelaPromocao> {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       FilledButton(
-        onPressed: _enviando ? null : _participar,
+        onPressed: _enviando ? null : _confirmarEParticipar,
         style: FilledButton.styleFrom(
           backgroundColor: BandFMColors.orange,
           foregroundColor: Colors.black,
