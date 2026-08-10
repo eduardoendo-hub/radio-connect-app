@@ -26,8 +26,19 @@ ARG STREAM_URL=
 # nginx mandando no-store. Num produto que ainda muda todo dia, isso é veneno.
 #
 # Quando o app for para as lojas isso deixa de importar — lá quem versiona é a loja.
+# `--no-tree-shake-icons` é correção de defeito, não capricho.
+#
+# O Flutter remove do arquivo de fonte os ícones que ele julga não usados. Com os
+# Material Symbols o julgamento erra: `Symbols.arrow_back` e `Symbols.swords` são
+# referências constantes, diretas, e mesmo assim saíam da fonte — o widget desenhava a
+# pastilha e o glifo vinha vazio. Levei dois ciclos de deploy caçando isso achando que
+# era o widget.
+#
+# Custa algumas centenas de KB no pacote. Num aplicativo de rádio, onde a primeira coisa
+# que a pessoa faz é apertar play, isso não se percebe; ícone que não aparece, sim.
 RUN flutter build web --release \
       --pwa-strategy=none \
+      --no-tree-shake-icons \
       --dart-define=API_URL=$API_URL \
       --dart-define=TENANT=$TENANT \
       --dart-define=STREAM_URL=$STREAM_URL
