@@ -16,8 +16,14 @@ import 'seus_dados.dart';
 /// O Índice de Conexão aparece em **linguagem, nunca como número frio**: "Muito forte",
 /// não "82 pontos". Sem ranking público e sem gamificação infantil.
 ///
-/// **Estado atual: números simulados.** O backend já grava os eventos e tem o modelo
-/// de snapshot; o cálculo do Índice entra em seguida.
+/// **Tudo aqui vem do banco.** A primeira versão trazia "3h20 de escuta nesta semana" e
+/// "12 Momentos no mês" escritos no código — o produto nunca mediu tempo de escuta e
+/// ninguém contava Momentos. Numa tela que a pessoa lê como sendo sobre ela, número
+/// inventado é a pior coisa que se pode pôr: no dia em que ela reparar que o número não
+/// muda, tudo o mais aqui vira suspeito.
+///
+/// Tempo de escuta não voltou como zero — voltou como nada. A rádio toca no chuveiro e
+/// no carro, e este aplicativo não tem como contar isso.
 class TelaSuaRadio extends StatefulWidget {
   final String? nome;
   const TelaSuaRadio({super.key, this.nome});
@@ -28,6 +34,7 @@ class TelaSuaRadio extends StatefulWidget {
 
 class _TelaSuaRadioState extends State<TelaSuaRadio> {
   List<Map<String, dynamic>> _promocoes = [];
+  Map<String, dynamic>? _conexao;
   bool _carregando = true;
 
   @override
@@ -43,17 +50,41 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
   /// depois — o que ainda pode acontecer vale mais que o que já passou.
   Future<void> _carregar() async {
     try {
-      final r = await Api.obter('/promocoes');
+      // As duas juntas: a tela só faz sentido inteira, e são duas viagens de rede que
+      // não dependem uma da outra.
+      final r = await Future.wait([
+        Api.obter('/promocoes'),
+        Api.obter('/minha-conexao'),
+      ]);
       if (!mounted) return;
       setState(() {
-        _promocoes = ((r['promocoes'] as List?) ?? const [])
+        _promocoes = ((r[0]['promocoes'] as List?) ?? const [])
             .map((e) => (e as Map).cast<String, dynamic>())
             .toList();
+        _conexao = r[1];
         _carregando = false;
       });
     } catch (_) {
       if (mounted) setState(() => _carregando = false);
     }
+  }
+
+  /// "Ouvinte desde março de 2026" — a partir da data real do cadastro.
+  ///
+  /// Antes era texto fixo. Quem baixasse o aplicativo hoje leria que é ouvinte desde
+  /// março, o que é uma frase simpática e mentirosa sobre a própria pessoa.
+  String _desde() {
+    final d = instante(_conexao?['desde']);
+    if (d == null) return 'Ouvinte da Band FM';
+    const meses = [
+      'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+    ];
+    final agora = DateTime.now();
+    // Quem chegou esta semana não é "ouvinte desde agosto de 2026" — soa a piada de mau
+    // gosto com quem acabou de instalar o aplicativo.
+    if (agora.difference(d).inDays < 30) return 'Chegou agora — seja bem-vindo';
+    return 'Ouvinte desde ${meses[d.month - 1]} de ${d.year}';
   }
 
   @override
@@ -84,8 +115,8 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
               Text(primeiroNome,
                   style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.3)),
               const SizedBox(height: 2),
-              const Text('Ouvinte desde março de 2026',
-                  style: TextStyle(fontSize: 12.5, color: BandFMColors.textTertiary)),
+              Text(_desde(),
+                  style: const TextStyle(fontSize: 12.5, color: BandFMColors.textTertiary)),
             ]),
           ),
           // A engrenagem levava a lugar nenhum. Agora leva aos dados — que é a única
@@ -102,21 +133,36 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
         const SizedBox(height: BandFMSpacing.x5),
         // A escada substitui a barra solta: uma barra diz "quanto", a escada diz
         // "onde você está e para onde isso vai" — que é o que o capítulo pede.
-        const EscadaConexao(
-          nivel: 3,
-          porque: [
-            'voltou em quatro dias desta semana',
-            'participou de três Momentos',
-            'conversou com a rádio',
-          ],
-        ),
+        // Só depois de saber. Desenhar a escada em "Descobrindo" enquanto carrega faria
+        // quem é Embaixador ver a si mesmo no primeiro degrau por um segundo — e
+        // informação errada sobre a própria pessoa não fica menos errada por ser breve.
+        if (_conexao != null)
+          EscadaConexao(
+            nivel: (_conexao!['nivel'] as num?)?.toInt() ?? 0,
+            porque: ((_conexao!['porque'] as List?) ?? const [])
+                .map((e) => e.toString())
+                .toList(),
+          )
+        else
+          const SizedBox(height: 128),
 
-        const SizedBox(height: BandFMSpacing.x3),
-        Row(children: [
-          Expanded(child: _numero('3h20', 'de escuta nesta semana')),
-          const SizedBox(width: 10),
-          Expanded(child: _numero('12', 'Momentos no mês')),
-        ]),
+        // Os dois números só aparecem quando existem. Um "0" grande em negrito na tela
+        // da própria relação não informa nada: acusa. Quem ainda não participou lê o
+        // convite na escada acima, que é o recado certo para quem acabou de chegar.
+        if (_momentos > 0 || _promocoesContadas > 0) ...[
+          const SizedBox(height: BandFMSpacing.x3),
+          Row(children: [
+            if (_momentos > 0)
+              Expanded(child: _numero('$_momentos', _momentos == 1
+                  ? 'Momento neste mês'
+                  : 'Momentos neste mês')),
+            if (_momentos > 0 && _promocoesContadas > 0) const SizedBox(width: 10),
+            if (_promocoesContadas > 0)
+              Expanded(child: _numero('$_promocoesContadas', _promocoesContadas == 1
+                  ? 'promoção que você entrou'
+                  : 'promoções que você entrou')),
+          ]),
+        ],
 
         // Só existe o bloco se a pessoa participou de alguma coisa. Título com vazio
         // embaixo anuncia uma falta — e nesta tela, que é a da relação, isso é o pior
@@ -176,6 +222,9 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
       ),
     );
   }
+
+  int get _momentos => (_conexao?['momentosNoMes'] as num?)?.toInt() ?? 0;
+  int get _promocoesContadas => (_conexao?['promocoes'] as num?)?.toInt() ?? 0;
 
   Widget _numero(String valor, String rotulo) => Cartao(
         padding: const EdgeInsets.all(BandFMSpacing.x4),
