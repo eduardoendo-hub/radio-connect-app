@@ -328,7 +328,11 @@ class _TelaPromocaoState extends State<TelaPromocao> {
 
               if (AssinaturaPatrocinio.talvez(p['patrocinio']) != null) ...[
                 const SizedBox(height: 20),
-                AssinaturaPatrocinio.talvez(p['patrocinio'])!,
+                AssinaturaPatrocinio.talvez(
+                  p['patrocinio'],
+                  posicao: 'assinatura_promocao',
+                  referenciaId: p['id']?.toString(),
+                )!,
               ],
             ]),
           ),

@@ -251,7 +251,12 @@ class _CartaoFofocometroState extends State<CartaoFofocometro> {
   /// ligada à entrega. É o inventário mais valioso do produto — atenção com hora
   /// marcada vale mais que qualquer banner de rolagem.
   Widget _assinaturaDoPatrocinio() =>
-      AssinaturaPatrocinio.talvez(_patrocinio) ?? const SizedBox.shrink();
+      AssinaturaPatrocinio.talvez(
+        _patrocinio,
+        posicao: 'assinatura_momento',
+        referenciaId: widget.momento['id']?.toString(),
+      ) ??
+      const SizedBox.shrink();
 
 
   Widget _aRevelacao() {

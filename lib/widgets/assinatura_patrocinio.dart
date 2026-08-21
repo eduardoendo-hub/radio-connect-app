@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../api.dart';
 import '../tema.dart';
 
 /// "Um oferecimento de X."
@@ -13,23 +14,90 @@ import '../tema.dart';
 /// logos disputando a mesma tela não valem o dobro — não valem nada, porque ninguém
 /// olha para nenhum dos dois. O específico e caro (minutos, com hora marcada) ganha do
 /// permanente e barato (horas, todo dia).
-class AssinaturaPatrocinio extends StatelessWidget {
+class AssinaturaPatrocinio extends StatefulWidget {
   final Map<String, dynamic> patrocinio;
+
+  /// O que estava na tela: a Edição do programa, o Momento, a promoção.
+  ///
+  /// É o que define **uma** impressão. Um patrocínio de três horas vale uma exposição
+  /// por ouvinte naquela edição, não uma a cada repintura — senão o número deixa de
+  /// significar alguma coisa e a fatura deixa de ser defensável.
+  final String? posicao;
+  final String? referenciaId;
 
   /// `discreta` é a versão do cabeçalho do programa: sem caixa, alinhada à esquerda.
   /// O programa fica no ar por horas — uma caixa cheia ali cansaria em dez minutos.
   final bool discreta;
 
-  const AssinaturaPatrocinio(this.patrocinio, {super.key, this.discreta = false});
+  const AssinaturaPatrocinio(
+    this.patrocinio, {
+    super.key,
+    this.discreta = false,
+    this.posicao,
+    this.referenciaId,
+  });
 
   /// Devolve `null` quando não há patrocínio, para a tela poder escrever
   /// `AssinaturaPatrocinio.talvez(x) ?? const SizedBox.shrink()` sem espalhar `if`.
-  static Widget? talvez(Object? patrocinio, {bool discreta = false}) {
+  static Widget? talvez(
+    Object? patrocinio, {
+    bool discreta = false,
+    String? posicao,
+    String? referenciaId,
+  }) {
     if (patrocinio is! Map) return null;
     final p = patrocinio.cast<String, dynamic>();
     if ((p['nome']?.toString() ?? '').isEmpty) return null;
-    return AssinaturaPatrocinio(p, discreta: discreta);
+    return AssinaturaPatrocinio(
+      p,
+      discreta: discreta,
+      posicao: posicao,
+      referenciaId: referenciaId,
+    );
   }
+
+  @override
+  State<AssinaturaPatrocinio> createState() => _AssinaturaPatrocinioState();
+}
+
+class _AssinaturaPatrocinioState extends State<AssinaturaPatrocinio> {
+  @override
+  void initState() {
+    super.initState();
+    _registrar();
+  }
+
+  @override
+  void didUpdateWidget(AssinaturaPatrocinio antes) {
+    super.didUpdateWidget(antes);
+    // Trocou o que está na tela — outro Momento, outra edição —, conta de novo. É outra
+    // exposição, de outra coisa.
+    if (antes.referenciaId != widget.referenciaId) _registrar();
+  }
+
+  /// Avisa que a marca apareceu.
+  ///
+  /// Sem `await` e sem tratar erro de propósito: contar impressão é telemetria, e
+  /// telemetria nunca pode atrasar nem quebrar o que a pessoa veio ver. Se falhar, o
+  /// que se perde é um número — não a tela.
+  ///
+  /// O servidor recusa a repetida sozinho, num índice único: o aplicativo não precisa
+  /// lembrar o que já contou, e assim reinstalar o app não vira impressão nova.
+  void _registrar() {
+    final campanhaId = widget.patrocinio['campanhaId']?.toString();
+    final posicao = widget.posicao;
+    final referenciaId = widget.referenciaId;
+    if (campanhaId == null || posicao == null || referenciaId == null) return;
+
+    Api.enviar('/anuncios/assinatura', {
+      'campanhaId': campanhaId,
+      'posicao': posicao,
+      'referenciaId': referenciaId,
+    }).catchError((_) => <String, dynamic>{});
+  }
+
+  Map<String, dynamic> get patrocinio => widget.patrocinio;
+  bool get discreta => widget.discreta;
 
   @override
   Widget build(BuildContext context) {

@@ -109,9 +109,14 @@ class TelaNoAr extends StatelessWidget {
                 // assim que o Momento sai.
                 if (momento?['patrocinio'] == null) ...[
                   Builder(builder: (_) {
+                    // A referência é a **edição**, não o programa: "A Hora do Ronco"
+                    // vai ao ar todo dia, e cada dia é uma exposição nova. Referenciar
+                    // o programa contaria uma vez na vida.
                     final assina = AssinaturaPatrocinio.talvez(
                         estado.estado?['patrocinioDoPrograma'],
-                        discreta: true);
+                        discreta: true,
+                        posicao: 'assinatura_programa',
+                        referenciaId: estado.estado?['edicaoId']?.toString());
                     if (assina == null) return const SizedBox.shrink();
                     return Padding(
                         padding: const EdgeInsets.only(top: 10), child: assina);

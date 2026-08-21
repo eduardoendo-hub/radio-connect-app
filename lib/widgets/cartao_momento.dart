@@ -285,7 +285,11 @@ class _CartaoMomentoState extends State<CartaoMomento> {
                 // quem paga assina o Momento, não substitui a pergunta.
                 if (AssinaturaPatrocinio.talvez(m['patrocinio']) != null) ...[
                   const SizedBox(height: 16),
-                  AssinaturaPatrocinio.talvez(m['patrocinio'])!,
+                  AssinaturaPatrocinio.talvez(
+                    m['patrocinio'],
+                    posicao: 'assinatura_momento',
+                    referenciaId: m['id']?.toString(),
+                  )!,
                 ],
               ],
             ),

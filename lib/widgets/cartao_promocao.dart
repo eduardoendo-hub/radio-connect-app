@@ -105,7 +105,11 @@ class _CartaoPromocaoState extends State<CartaoPromocao> {
               _acao(),
               if (AssinaturaPatrocinio.talvez(p['patrocinio']) != null) ...[
                 const SizedBox(height: 14),
-                AssinaturaPatrocinio.talvez(p['patrocinio'])!,
+                AssinaturaPatrocinio.talvez(
+                  p['patrocinio'],
+                  posicao: 'assinatura_promocao',
+                  referenciaId: p['id']?.toString(),
+                )!,
               ],
             ]),
           ),
