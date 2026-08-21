@@ -39,11 +39,22 @@ class EscadaConexao extends StatelessWidget {
   /// que uma escada sem degrau nenhum.
   final List<String> degraus;
 
+  /// A frase que define cada degrau, na voz da rádio.
+  ///
+  /// **O nome sozinho não explica o degrau.** "Chega junto" é bonito e não diz o que a
+  /// pessoa fez para chegar ali nem o que ela é agora — e o Índice inteiro depende de a
+  /// evolução parecer justa, o que exige que ela seja compreendida.
+  ///
+  /// Vazia, ou sem frase para este degrau, a linha simplesmente não aparece. É melhor
+  /// que a rádio não diga nada do que dizer a frase de outra emissora.
+  final List<String?> frases;
+
   const EscadaConexao({
     super.key,
     required this.nivel,
     this.porque = const [],
     this.degraus = const [],
+    this.frases = const [],
   });
 
   /// Estrutura genérica do capítulo. **A linguagem pertence à emissora**: cada rádio
@@ -64,6 +75,13 @@ class EscadaConexao extends StatelessWidget {
   List<(String, IconData)> get _degraus {
     if (degraus.length != niveis.length) return niveis;
     return [for (var i = 0; i < niveis.length; i++) (degraus[i], niveis[i].$2)];
+  }
+
+  /// A frase deste degrau, se a rádio escreveu uma.
+  String? get _frase {
+    if (nivel < 0 || nivel >= frases.length) return null;
+    final f = frases[nivel];
+    return (f == null || f.isEmpty) ? null : f;
   }
 
   @override
@@ -93,6 +111,13 @@ class EscadaConexao extends StatelessWidget {
             style: const TextStyle(
                 fontSize: 25, fontWeight: FontWeight.w800,
                 letterSpacing: -.6, color: Colors.white)),
+
+        if (_frase != null) ...[
+          const SizedBox(height: 6),
+          Text(_frase!,
+              style: const TextStyle(
+                  fontSize: 14, height: 1.4, color: BandFMColors.textSecondary)),
+        ],
 
         const SizedBox(height: 18),
         _trilha(atual),
@@ -129,13 +154,13 @@ class EscadaConexao extends StatelessWidget {
         ],
 
         // Direção, não meta. Sem contagem regressiva e sem prazo.
-        Text(
-          ultimo
-              ? 'Você é de casa. Obrigado por estar sempre por aqui.'
-              : 'Falta pouco para ${niveis[atual + 1].$1}.',
-          style: const TextStyle(
-              fontSize: 13, height: 1.4, color: BandFMColors.textTertiary),
-        ),
+        //
+        // No topo não há para onde apontar, e a frase que ficava aqui — "você é de casa"
+        // — saiu: ela dizia o que o degrau significa, e isso agora é da rádio, não nossa.
+        if (!ultimo)
+          Text('Falta pouco para ${niveis[atual + 1].$1}.',
+              style: const TextStyle(
+                  fontSize: 13, height: 1.4, color: BandFMColors.textTertiary)),
       ]),
     );
   }

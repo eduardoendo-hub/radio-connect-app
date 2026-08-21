@@ -86,7 +86,9 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
     final agora = DateTime.now();
     // Quem chegou esta semana não é "ouvinte desde agosto de 2026" — soa a piada de mau
     // gosto com quem acabou de instalar o aplicativo.
-    if (agora.difference(d).inDays < 30) return 'Chegou agora — seja bem-vindo';
+    // "Bem-vindo" flexiona, e a audiência da Band é majoritariamente feminina. A frase
+    // sem adjetivo diz a mesma coisa e serve para todo mundo.
+    if (agora.difference(d).inDays < 30) return 'Chegou agora — que bom ter você aqui';
     return 'Ouvinte desde ${meses[d.month - 1]} de ${d.year}';
   }
 
@@ -147,6 +149,9 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
                 .toList(),
             degraus: ((_conexao!['degraus'] as List?) ?? const [])
                 .map((e) => e.toString())
+                .toList(),
+            frases: ((_conexao!['frases'] as List?) ?? const [])
+                .map((e) => e?.toString())
                 .toList(),
           )
         else
