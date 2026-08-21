@@ -40,7 +40,7 @@ class BarraDaRadio extends StatelessWidget {
           border: Border(bottom: BorderSide(color: BandFMColors.line)),
         ),
         child: Row(children: [
-          Image.asset('assets/logo-emissora.webp', height: 22),
+          Image.asset('assets/logo-emissora.webp', height: 26),
           const Spacer(),
           if (estado.semRede)
             const Row(children: [
