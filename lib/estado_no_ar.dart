@@ -21,6 +21,18 @@ class EstadoNoAr extends ChangeNotifier {
   bool get semRede => _semRede;
 
   bool get aoVivo => _estado?['aoVivo'] == true;
+  /// O nome da rádio, como ela se chama.
+  ///
+  /// **Estava escrito "Band FM" em treze lugares do aplicativo.** O produto é
+  /// white-label e o servidor sempre mandou este nome no Estado No Ar — o aplicativo é
+  /// que não olhava. Numa emissora nova, cada uma daquelas telas diria o nome da rádio
+  /// errada, e é o tipo de defeito que ninguém percebe até estar na frente do cliente.
+  ///
+  /// É `static` porque a alternativa era passar o nome por sete níveis de widget só para
+  /// escrever um título. Enquanto a primeira resposta não chega, o valor é vazio e cada
+  /// tela decide o que dizer no lugar — nunca o nome de outra rádio.
+  static String nome = '';
+
   Map<String, dynamic>? get programa => _estado?['programa'] as Map<String, dynamic>?;
   Map<String, dynamic>? get locutor => _estado?['locutor'] as Map<String, dynamic>?;
   Map<String, dynamic>? get momento => _estado?['momento'] as Map<String, dynamic>?;
@@ -49,6 +61,8 @@ class EstadoNoAr extends ChangeNotifier {
         return;
       }
       _estado = r;
+      final daRadio = (r['emissora'] as Map?)?['nome']?.toString();
+      if (daRadio != null && daRadio.isNotEmpty) nome = daRadio;
       _etag = 'W/"${r['versao']}"';
       notifyListeners();
     } on ErroApi catch (e) {

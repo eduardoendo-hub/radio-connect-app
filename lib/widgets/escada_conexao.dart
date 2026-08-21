@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../tema.dart';
+import '../estado_no_ar.dart';
 
 /// A escada de conexão com a rádio.
 ///
@@ -26,7 +27,24 @@ class EscadaConexao extends StatelessWidget {
   /// O que fez a conexão crescer — em fatos, não em pontos.
   final List<String> porque;
 
-  const EscadaConexao({super.key, required this.nivel, this.porque = const []});
+  /// Os nomes dos degraus, vindos do servidor.
+  ///
+  /// **A linguagem pertence à emissora.** A régua é a mesma para todas as rádios; os
+  /// nomes e os limiares são de cada uma, configurados no Studio. Uma rádio jovem chama
+  /// o topo de "Da família", outra de "Embaixador", e nenhuma das duas devia depender de
+  /// um deploy nosso para isso.
+  ///
+  /// Vazio cai nos nomes de fábrica — o que acontece quando a resposta é antiga ou o
+  /// servidor está velho, e nesses casos uma escada com nomes genéricos é muito melhor
+  /// que uma escada sem degrau nenhum.
+  final List<String> degraus;
+
+  const EscadaConexao({
+    super.key,
+    required this.nivel,
+    this.porque = const [],
+    this.degraus = const [],
+  });
 
   /// Estrutura genérica do capítulo. **A linguagem pertence à emissora**: cada rádio
   /// renomeia conforme a própria personalidade, e por isso isto vive numa lista e não
@@ -39,8 +57,18 @@ class EscadaConexao extends StatelessWidget {
     ('Embaixador', Symbols.star),
   ];
 
+  /// Os degraus a desenhar: os da emissora quando vieram, os de fábrica quando não.
+  ///
+  /// O ícone continua sendo nosso, e continua na ordem: ele carrega a progressão visual —
+  /// da bússola à estrela — e não é coisa que se configure sem desenhar de novo a escada.
+  List<(String, IconData)> get _degraus {
+    if (degraus.length != niveis.length) return niveis;
+    return [for (var i = 0; i < niveis.length; i++) (degraus[i], niveis[i].$2)];
+  }
+
   @override
   Widget build(BuildContext context) {
+    final niveis = _degraus;
     final atual = nivel.clamp(0, niveis.length - 1);
     final ultimo = atual == niveis.length - 1;
 
@@ -53,8 +81,11 @@ class EscadaConexao extends StatelessWidget {
         border: Border.all(color: BandFMColors.orange.withValues(alpha: .28)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('SUA CONEXÃO COM A BAND FM',
-            style: TextStyle(
+        Text(
+            EstadoNoAr.nome.isEmpty
+                ? 'SUA CONEXÃO COM A RÁDIO'
+                : 'SUA CONEXÃO COM A ${EstadoNoAr.nome.toUpperCase()}',
+            style: const TextStyle(
                 fontSize: 9.5, fontWeight: FontWeight.w800,
                 letterSpacing: 1.2, color: BandFMColors.orange)),
         const SizedBox(height: 10),

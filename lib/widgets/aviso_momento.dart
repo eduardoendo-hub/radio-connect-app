@@ -186,7 +186,10 @@ class _AvisoMomentoState extends State<AvisoMomento> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('AGORA NA BAND FM',
+                            Text(
+                                EstadoNoAr.nome.isEmpty
+                                    ? 'AGORA NA RÁDIO'
+                                    : 'AGORA NA ${EstadoNoAr.nome.toUpperCase()}',
                                 style: TextStyle(
                                     fontSize: 9.5, fontWeight: FontWeight.w800,
                                     letterSpacing: 1.2, color: Color(0xCCFFFFFF))),

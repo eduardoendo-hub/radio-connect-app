@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../api.dart';
 import '../tema.dart';
+import '../estado_no_ar.dart';
 
 /// O banner do No Ar.
 ///
@@ -128,7 +129,8 @@ class SobreposicaoPreRoll extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.white)),
             const SizedBox(height: 2),
-            const Text('A Band FM começa em seguida',
+            Text(
+                'A ${EstadoNoAr.nome.isEmpty ? "rádio" : EstadoNoAr.nome} começa em seguida',
                 style: TextStyle(fontSize: 11.5, color: BandFMColors.textTertiary)),
           ]),
         ),

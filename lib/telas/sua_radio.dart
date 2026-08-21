@@ -7,6 +7,7 @@ import '../widgets/comuns.dart';
 import '../widgets/escada_conexao.dart';
 import 'promocao.dart';
 import 'seus_dados.dart';
+import '../estado_no_ar.dart';
 
 /// 08 · Sua Rádio.
 ///
@@ -75,7 +76,9 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
   /// março, o que é uma frase simpática e mentirosa sobre a própria pessoa.
   String _desde() {
     final d = instante(_conexao?['desde']);
-    if (d == null) return 'Ouvinte da Band FM';
+    if (d == null) {
+      return EstadoNoAr.nome.isEmpty ? 'Ouvinte' : 'Ouvinte da ${EstadoNoAr.nome}';
+    }
     const meses = [
       'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
       'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
@@ -142,6 +145,9 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
             porque: ((_conexao!['porque'] as List?) ?? const [])
                 .map((e) => e.toString())
                 .toList(),
+            degraus: ((_conexao!['degraus'] as List?) ?? const [])
+                .map((e) => e.toString())
+                .toList(),
           )
         else
           const SizedBox(height: 128),
@@ -149,18 +155,13 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
         // Os dois números só aparecem quando existem. Um "0" grande em negrito na tela
         // da própria relação não informa nada: acusa. Quem ainda não participou lê o
         // convite na escada acima, que é o recado certo para quem acabou de chegar.
-        if (_momentos > 0 || _promocoesContadas > 0) ...[
+        if (_cartoes.isNotEmpty) ...[
           const SizedBox(height: BandFMSpacing.x3),
           Row(children: [
-            if (_momentos > 0)
-              Expanded(child: _numero('$_momentos', _momentos == 1
-                  ? 'Momento neste mês'
-                  : 'Momentos neste mês')),
-            if (_momentos > 0 && _promocoesContadas > 0) const SizedBox(width: 10),
-            if (_promocoesContadas > 0)
-              Expanded(child: _numero('$_promocoesContadas', _promocoesContadas == 1
-                  ? 'promoção que você entrou'
-                  : 'promoções que você entrou')),
+            for (var i = 0; i < _cartoes.length; i++) ...[
+              if (i > 0) const SizedBox(width: 10),
+              Expanded(child: _numero(_cartoes[i].$1, _cartoes[i].$2)),
+            ],
           ]),
         ],
 
@@ -225,6 +226,34 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
 
   int get _momentos => (_conexao?['momentosNoMes'] as num?)?.toInt() ?? 0;
   int get _promocoesContadas => (_conexao?['promocoes'] as num?)?.toInt() ?? 0;
+  int get _minutos => (_conexao?['minutosNaSemana'] as num?)?.toInt() ?? 0;
+
+  /// Os números que existem. No máximo dois, e só os que têm o que dizer.
+  ///
+  /// **Zero não vira cartão.** Um "0" grande em negrito na tela da própria relação não
+  /// informa: acusa. Quem ainda não participou lê o convite na escada acima, que é o
+  /// recado certo para quem acabou de chegar.
+  ///
+  /// Dois é o teto porque três cartões lado a lado num telefone viram três tiras
+  /// ilegíveis — a mesma razão pela qual o quadro não aceita quatro opções.
+  List<(String, String)> get _cartoes {
+    final lista = <(String, String)>[];
+    if (_minutos >= 60) {
+      final horas = _minutos ~/ 60;
+      lista.add(('${horas}h', horas == 1
+          ? 'ouvida no aplicativo esta semana'
+          : 'ouvidas no aplicativo esta semana'));
+    }
+    if (_momentos > 0) {
+      lista.add(('$_momentos', _momentos == 1 ? 'Momento neste mês' : 'Momentos neste mês'));
+    }
+    if (_promocoesContadas > 0) {
+      lista.add(('$_promocoesContadas', _promocoesContadas == 1
+          ? 'promoção que você entrou'
+          : 'promoções que você entrou'));
+    }
+    return lista.take(2).toList();
+  }
 
   Widget _numero(String valor, String rotulo) => Cartao(
         padding: const EdgeInsets.all(BandFMSpacing.x4),

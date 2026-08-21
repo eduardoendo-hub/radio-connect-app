@@ -8,6 +8,7 @@ import '../tema.dart';
 import 'assinatura_patrocinio.dart';
 import 'identidade_quadro.dart';
 import 'pulso.dart';
+import '../estado_no_ar.dart';
 
 /// 03 · O Momento no No Ar.
 ///
@@ -474,7 +475,8 @@ class _Resultado extends StatelessWidget {
                 Text(mensagem ?? 'Seu voto foi registrado',
                     style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 3),
-                const Text('Sua conexão com a Band FM ficou mais forte',
+                Text(
+                    'Sua conexão com a ${EstadoNoAr.nome.isEmpty ? "rádio" : EstadoNoAr.nome} ficou mais forte',
                     style: TextStyle(fontSize: 12.5, color: BandFMColors.textTertiary)),
               ]),
             ),

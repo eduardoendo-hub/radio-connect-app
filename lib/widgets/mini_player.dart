@@ -47,7 +47,30 @@ class EstadoPlayer extends ChangeNotifier {
     // Qualquer mudança vinda do próprio player — buffer, pausa do sistema, fim de
     // conexão — se reflete na tela na hora.
     _player.playerStateStream.listen((_) => notifyListeners());
+    _relogio = Timer.periodic(const Duration(minutes: 1), (_) => _contarMinuto());
   }
+
+  Timer? _relogio;
+
+  /// Um minuto ouvido, avisado ao servidor.
+  ///
+  /// **É `tocando` que decide, não a intenção.** Se o stream cair ou o sistema pausar, o
+  /// player diz que não está tocando e o minuto não conta — que é a diferença entre medir
+  /// escuta e medir aba aberta.
+  ///
+  /// O anúncio de pré-roll não entra: quem está esperando a rádio começar não está
+  /// ouvindo a rádio, e contar aquilo como escuta seria inflar o Índice com o tempo que a
+  /// pessoa passa querendo que ele acabe.
+  ///
+  /// Sem `await` e sem tratar erro: é telemetria. Se falhar, o que se perde é um minuto
+  /// num número — não a música que está tocando.
+  void _contarMinuto() {
+    if (!_player.playing) return;
+    Api.enviar('/sinal-de-vida', {'minutos': 1})
+        .catchError((_) => <String, dynamic>{});
+  }
+
+
 
   void definirFonte(String? url) => _url = url;
 
@@ -180,6 +203,7 @@ class EstadoPlayer extends ChangeNotifier {
 
   @override
   void dispose() {
+    _relogio?.cancel();
     _player.dispose();
     super.dispose();
   }
