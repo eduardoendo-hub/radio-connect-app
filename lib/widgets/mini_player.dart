@@ -52,21 +52,40 @@ class EstadoPlayer extends ChangeNotifier {
 
   Timer? _relogio;
 
-  /// Um minuto ouvido, avisado ao servidor.
+  /// O sinal de vida, a cada minuto.
   ///
-  /// **É `tocando` que decide, não a intenção.** Se o stream cair ou o sistema pausar, o
+  /// **Vai mesmo quando não está tocando.** O painel de audiência precisa dos dois
+  /// números lado a lado — quem está no aplicativo e quem está com o áudio no ouvido — e
+  /// eles medem coisas diferentes: ouvir por aqui gasta a banda da pessoa, e muita gente
+  /// abre o aplicativo com a rádio tocando no carro só para votar e conversar. Se o sinal
+  /// só saísse com o som ligado, essa parte da base ficaria invisível.
+  ///
+  /// **É `playing` que decide, não a intenção.** Se o stream cair ou o sistema pausar, o
   /// player diz que não está tocando e o minuto não conta — que é a diferença entre medir
   /// escuta e medir aba aberta.
   ///
-  /// O anúncio de pré-roll não entra: quem está esperando a rádio começar não está
-  /// ouvindo a rádio, e contar aquilo como escuta seria inflar o Índice com o tempo que a
-  /// pessoa passa querendo que ele acabe.
+  /// O anúncio de pré-roll não entra: quem espera a rádio começar não está ouvindo a
+  /// rádio, e contar aquilo seria inflar o número com o tempo que a pessoa passa querendo
+  /// que ele acabe.
   ///
-  /// Sem `await` e sem tratar erro: é telemetria. Se falhar, o que se perde é um minuto
-  /// num número — não a música que está tocando.
+  /// Continua correndo com a tela apagada e o aplicativo no bolso, que é como se ouve
+  /// rádio de verdade. Sem `await` e sem tratar erro: é telemetria, e o que se perde numa
+  /// falha é um minuto num número — não a música que está tocando.
   void _contarMinuto() {
-    if (!_player.playing) return;
-    Api.enviar('/sinal-de-vida', {'minutos': 1})
+    final tocandoAgora = _player.playing;
+    Api.enviar('/sinal-de-vida', {
+      'minutos': tocandoAgora ? 1 : 0,
+      'ouvindo': tocandoAgora,
+    }).catchError((_) => <String, dynamic>{});
+  }
+
+  /// Apertou o play.
+  ///
+  /// Evento, e não estado: diz quanta gente **decidiu** ouvir por aqui, que é outra
+  /// pergunta de quanta gente está ouvindo agora. Um programa pode ganhar muitos plays e
+  /// segurar pouca gente — e é essa diferença que mostra o que prende.
+  void _contarPlay() {
+    Api.enviar('/sinal-de-vida', {'play': true, 'ouvindo': true})
         .catchError((_) => <String, dynamic>{});
   }
 
@@ -91,6 +110,11 @@ class EstadoPlayer extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    // Aqui a pessoa está pedindo para ouvir. Conta antes de tentar, de propósito: quem
+    // apertou play com o stream fora do ar decidiu ouvir do mesmo jeito, e essa é a
+    // informação — se a rádio perde gente porque a transmissão falha, o painel precisa
+    // mostrar o play sem a escuta em vez de esconder os dois.
+    _contarPlay();
     _erro = null;
     try {
       if (fonteExterna) {
