@@ -24,6 +24,8 @@ class TelaSeusDados extends StatefulWidget {
 
 class _TelaSeusDadosState extends State<TelaSeusDados> {
   final _nome = TextEditingController();
+  final _apelido = TextEditingController();
+  bool _podeSerCitado = false;
   final _email = TextEditingController();
   final _cidade = TextEditingController();
   final _cpf = TextEditingController();
@@ -44,7 +46,7 @@ class _TelaSeusDadosState extends State<TelaSeusDados> {
 
   @override
   void dispose() {
-    for (final c in [_nome, _email, _cidade, _cpf, _nascimento]) {
+    for (final c in [_nome, _apelido, _email, _cidade, _cpf, _nascimento]) {
       c.dispose();
     }
     super.dispose();
@@ -57,6 +59,8 @@ class _TelaSeusDadosState extends State<TelaSeusDados> {
       if (!mounted) return;
       setState(() {
         _nome.text = p['nome']?.toString() ?? '';
+        _apelido.text = p['apelido']?.toString() ?? '';
+        _podeSerCitado = p['podeSerCitado'] == true;
         _email.text = p['email']?.toString() ?? '';
         _cidade.text = p['cidade']?.toString() ?? '';
         _telefone = p['telefone']?.toString();
@@ -80,6 +84,10 @@ class _TelaSeusDadosState extends State<TelaSeusDados> {
       final nascimento = _nascimento.text.trim();
       await Api.enviar('/perfil', {
         if (_nome.text.trim().isNotEmpty) 'nome': _nome.text.trim(),
+        // Vai sempre, mesmo vazio: apagar o apelido é uma escolha, e `null` é como ela
+        // chega ao servidor. Só mandar quando tem texto tornaria impossível desfazer.
+        'apelido': _apelido.text.trim(),
+        'podeSerCitado': _podeSerCitado,
         if (_email.text.trim().isNotEmpty) 'email': _email.text.trim(),
         if (_cidade.text.trim().isNotEmpty) 'cidade': _cidade.text.trim(),
         if (!_temCpf && _cpf.text.trim().isNotEmpty) 'cpf': _cpf.text.trim(),
@@ -143,6 +151,9 @@ class _TelaSeusDadosState extends State<TelaSeusDados> {
                 _campoNascimento(),
                 _campoCpf(),
 
+                const SizedBox(height: 26),
+                _noAr(),
+
                 if (_erro != null) ...[
                   const SizedBox(height: 14),
                   Text(_erro!, style: const TextStyle(fontSize: 13.5, color: Color(0xFFFF9A95))),
@@ -168,6 +179,60 @@ class _TelaSeusDadosState extends State<TelaSeusDados> {
             ),
     );
   }
+
+  /// O convite para ter o nome dito no ar.
+  ///
+  /// **Para quem ouve rádio, isso é prêmio e não formulário** — e o texto precisa dizer
+  /// isso, porque um "autorizo o tratamento dos meus dados" faria a mesma pergunta soar
+  /// como risco. O que está sendo pedido é permissão de verdade: dizer um nome na rádio é
+  /// publicação, e o silêncio de quem nunca foi perguntado não é sim.
+  ///
+  /// Nasce desligado, e o apelido vem junto porque muita gente topa ouvir "o Dudu" e não
+  /// topa ouvir o nome de registro. Uma pergunta só resolveria metade dos casos.
+  Widget _noAr() => Container(
+        padding: const EdgeInsets.all(BandFMSpacing.x4),
+        decoration: BoxDecoration(
+          color: BandFMColors.surface,
+          borderRadius: BorderRadius.circular(BandFMRadii.card),
+          border: Border.all(color: BandFMColors.orange.withValues(alpha: .3)),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Row(children: [
+            Icon(Symbols.campaign, size: 18, color: BandFMColors.orange),
+            SizedBox(width: 8),
+            Text('Seu nome no ar',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+          ]),
+          const SizedBox(height: 8),
+          const Text(
+            'A produção vê quem está com a gente e às vezes o locutor cita alguém no ar. '
+            'Só quem autoriza aqui pode ser citado.',
+            style: TextStyle(
+                fontSize: 13, height: 1.45, color: BandFMColors.textSecondary),
+          ),
+          const SizedBox(height: 14),
+          SwitchListTile.adaptive(
+            value: _podeSerCitado,
+            onChanged: (v) => setState(() => _podeSerCitado = v),
+            contentPadding: EdgeInsets.zero,
+            activeColor: BandFMColors.orange,
+            title: const Text('Pode falar meu nome no ar',
+                style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600)),
+          ),
+          if (_podeSerCitado) ...[
+            const SizedBox(height: 6),
+            _campo('Como te chamar no ar', _apelido, teclado: TextInputType.name),
+            const Padding(
+              padding: EdgeInsets.only(bottom: 4),
+              child: Text(
+                'Opcional. Sem isso a gente usa seu nome. "Dudu" costuma soar melhor no '
+                'rádio que "Eduardo Aparecido".',
+                style: TextStyle(fontSize: 11.5, height: 1.4, color: BandFMColors.textTertiary),
+              ),
+            ),
+          ],
+        ]),
+      );
 
   Widget _campo(String rotulo, TextEditingController controle,
           {TextInputType? teclado, List<TextInputFormatter>? formato, String? dica}) =>

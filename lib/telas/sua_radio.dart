@@ -36,6 +36,7 @@ class TelaSuaRadio extends StatefulWidget {
 class _TelaSuaRadioState extends State<TelaSuaRadio> {
   List<Map<String, dynamic>> _promocoes = [];
   Map<String, dynamic>? _conexao;
+  Map<String, dynamic>? _perfil;
   bool _carregando = true;
 
   @override
@@ -56,6 +57,7 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
       final r = await Future.wait([
         Api.obter('/promocoes'),
         Api.obter('/minha-conexao'),
+        Api.obter('/perfil'),
       ]);
       if (!mounted) return;
       setState(() {
@@ -63,6 +65,7 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
             .map((e) => (e as Map).cast<String, dynamic>())
             .toList();
         _conexao = r[1];
+        _perfil = (r[2]['perfil'] as Map?)?.cast<String, dynamic>();
         _carregando = false;
       });
     } catch (_) {
@@ -170,6 +173,11 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
           ]),
         ],
 
+        if (_faltaCadastro) ...[
+          const SizedBox(height: BandFMSpacing.x5),
+          _completar(),
+        ],
+
         // Só existe o bloco se a pessoa participou de alguma coisa. Título com vazio
         // embaixo anuncia uma falta — e nesta tela, que é a da relação, isso é o pior
         // recado possível para quem acabou de chegar.
@@ -225,6 +233,62 @@ class _TelaSuaRadioState extends State<TelaSuaRadio> {
         titulo: p['titulo']?.toString() ?? '',
         apoio: apoio,
         aDireita: const Icon(Symbols.chevron_right, size: 18, color: BandFMColors.textTertiary),
+      ),
+    );
+  }
+
+  /// A pessoa entrou só com o telefone e nunca voltou para completar.
+  ///
+  /// **Não bloqueia nada, e é essa a escolha.** Cadastro obrigatório na entrada mata a
+  /// conversão de um aplicativo de rádio — a pessoa quer ouvir, não preencher formulário.
+  /// O convite mora aqui, na tela da relação, onde ela já está olhando o que construiu
+  /// com a rádio; e some sozinho quando o cadastro fica completo.
+  bool get _faltaCadastro {
+    if (_perfil == null) return false;
+    final semNome = (_perfil!['nome']?.toString() ?? '').trim().isEmpty;
+    final naoAutorizou = _perfil!['podeSerCitado'] != true;
+    return semNome || naoAutorizou;
+  }
+
+  Widget _completar() {
+    final semNome = (_perfil?['nome']?.toString() ?? '').trim().isEmpty;
+    return GestureDetector(
+      onTap: () => Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => const TelaSeusDados()))
+          .then((_) => _carregar()),
+      child: Container(
+        padding: const EdgeInsets.all(BandFMSpacing.x4),
+        decoration: BoxDecoration(
+          color: BandFMColors.surface,
+          borderRadius: BorderRadius.circular(BandFMRadii.card),
+          border: Border.all(color: BandFMColors.orange.withValues(alpha: .3)),
+        ),
+        child: Row(children: [
+          const Icon(Symbols.campaign, size: 22, color: BandFMColors.orange),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(
+                // Duas faltas diferentes, dois convites diferentes. "Complete seu
+                // cadastro" não diz o que a pessoa ganha — e o que ela ganha aqui é
+                // concreto: o nome dela no rádio.
+                semNome ? 'A rádio ainda não sabe seu nome' : 'Quer ouvir seu nome no ar?',
+                style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                semNome
+                    ? 'Complete seu cadastro para concorrer às promoções e para o locutor '
+                        'poder te citar no ar.'
+                    : 'Autorize a gente a dizer seu nome quando você estiver com a gente.',
+                style: const TextStyle(
+                    fontSize: 12.5, height: 1.4, color: BandFMColors.textSecondary),
+              ),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Symbols.chevron_right, size: 18, color: BandFMColors.textTertiary),
+        ]),
       ),
     );
   }
